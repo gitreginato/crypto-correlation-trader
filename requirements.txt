@@ -1,6 +1,6 @@
 # Core data
 pandas==2.2
-numpy==2.0
+numpy==1.26.4
 pyarrow==17.0
 
 # Exchange data
