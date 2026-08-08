@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microestrutura: O Jogo Atras das Velas</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0a0e17;
+            color: #e0e6ed;
+            padding: 20px;
+        }
+        h1 { text-align: center; color: #ff9800; margin-bottom: 5px; font-size: 28px; }
+        .subtitle { text-align: center; color: #8892a0; margin-bottom: 30px; font-size: 14px; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .card {
+            background: #131722;
+            border: 1px solid #1e222d;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .card.full { grid-column: 1 / -1; }
+        .card h2 { color: #ff9800; font-size: 18px; margin-bottom: 15px; border-bottom: 1px solid #1e222d; padding-bottom: 10px; }
+        .card h3 { color: #8892a0; font-size: 14px; margin: 15px 0 10px; }
+        .chart { width: 100%; height: 400px; }
+        .chart.large { height: 500px; }
+        .chart.small { height: 300px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #1e222d; }
+        th { color: #ff9800; font-weight: 600; }
+        td.num { text-align: right; font-family: 'Courier New', monospace; }
+        .positive { color: #26a69a; }
+        .negative { color: #ef5350; }
+        .neutral { color: #8892a0; }
+        .insight {
+            background: #0d1117;
+            border-left: 3px solid #ff9800;
+            padding: 12px 16px;
+            margin: 10px 0;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .insight.critical {
+            border-left-color: #ef5350;
+            background: #1a0a0a;
+        }
+        .insight.good {
+            border-left-color: #26a69a;
+            background: #0a1a14;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .stat-box {
+            background: #1a1e2d;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .stat-box .value { font-size: 22px; font-weight: 700; color: #ff9800; }
+        .stat-box .label { font-size: 11px; color: #8892a0; margin-top: 4px; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; }
+        .tab {
+            padding: 6px 14px; background: #1e222d; border: none; color: #8892a0;
+            cursor: pointer; border-radius: 6px; font-size: 13px;
+        }
+        .tab.active { background: #ff9800; color: #0a0e17; }
+        .tab:hover { background: #2a2e3d; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+    <h1>Microestrutura: O Jogo Atras das Velas</h1>
+    <div class="subtitle">
+        Analise de order flow, volume profile, gaps, wicks e direcionamento de preco | 25 simbolos | TF: 1h
+    </div>
+
+    <div class="grid">
+
+        <!-- Taker Buy/Sell by Hour -->
+        <div class="card full">
+            <h2>1. Quem Esta Comprando vs Vendendo por Hora do Dia (Taker Buy/Sell Ratio)</h2>
+            <div class="insight">
+                <strong>Ratio > 1</strong>: compradores agressivos dominam (market buys). <strong>Ratio < 1</strong>: vendedores dominam (market sells).
+                Isso mostra quem esta no controle em cada hora. Horas com ratio consistente > 1 sao favoraveis para long.
+            </div>
+            <div id="chart-taker-hour" class="chart large"></div>
+        </div>
+
+        <!-- Net Aggression by Hour -->
+        <div class="card full">
+            <h2>2. Aggressao Liquida por Hora (Net Order Flow)</h2>
+            <div class="insight">
+                Percentual de volume de compra agressiva menos venda agressiva. Valores positivos = pressao de compra liquida.
+                Mostra quando os "bots das empresas" estao comprando ou vendendo mais agressivamente.
+            </div>
+            <div id="chart-net-agg" class="chart"></div>
+        </div>
+
+        <!-- Taker Buy/Sell Table -->
+        <div class="card">
+            <h2>3. Resumo: Quem Domina por Simbolo</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Simbolo</th>
+                        <th class="num">Ratio Medio</th>
+                        <th class="num">% Buy Dominant</th>
+                        <th class="num">Net Aggression</th>
+                        <th>Veredito</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td><strong>ADAUSDT</strong></td>
+                        <td class="num negative">0.995</td>
+                        <td class="num negative">43.4%</td>
+                        <td class="num negative">-0.0164</td>
+                        <td class="negative">
+                            VENDA
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>APTUSDT</strong></td>
+                        <td class="num positive">1.030</td>
+                        <td class="num negative">46.8%</td>
+                        <td class="num negative">-0.0062</td>
+                        <td class="neutral">
+                            NEUTRO
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>ARBUSDT</strong></td>
+                        <td class="num positive">1.055</td>
+                        <td class="num positive">54.7%</td>
+                        <td class="num positive">0.0108</td>
+                        <td class="positive">
+                            COMPRA
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>ATOMUSDT</strong></td>
+                        <td class="num positive">1.026</td>
+                        <td class="num negative">45.9%</td>
+                        <td class="num negative">-0.0160</td>
+                        <td class="negative">
+                            VENDA
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>AVAXUSDT</strong></td>
+                        <td class="num negative">0.995</td>
+                        <td class="num negative">44.6%</td>
+                        <td class="num negative">-0.0097</td>
+                        <td class="neutral">
+                            NEUTRO
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>BCHUSDT</strong></td>
+                        <td class="num positive">1.067</td>
+                        <td class="num negative">49.2%</td>
+                        <td class="num positive">0.0099</td>
+                        <td class="neutral">
+                            NEUTRO
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td class="num positive">1.034</td>
+                        <td class="num negative">47.2%</td>
+                        <td class="num negative">-0.0072</td>
+                        <td class="neutral">
+                            NEUTRO
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>BTCUSDT</strong></td>
+                        <td class="num negative">0.997</td>
+                        <td class="num negative">44.7%</td>
+                        <td class="num negative">-0.0067</td>
+                        <td class="neutral">
+                            NEUTRO
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>DOGEUSDT</strong></td>
+                        <td class="num negative">0.976</td>
+                        <td class="num negative">41.7%</td>
+                        <td class="num negative">-0.0119</td>
+                        <td class="negative">
+                            VENDA
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>DOTUSDT</strong></td>
+                        <td class="num negative">0.992</td>
+                        <td class="num negative">42.4%</td>
+                        <td class="num negative">-0.0182</td>
+                        <td class="negative">
+                            VENDA
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>ETHUSDT</strong></td>
+                        <td class="num positive">1.027</td>
+                        <td class="num negative">49.0%</td>
+                        <td class="num negative">-0.0047</td>
+                        <td class="neutral">
+                            NEUTRO
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>FILUSDT</strong></td>
+                        <td class="num positive">1.016</td>
+                        <td class="num negative">44.9%</td>
+                        <td class="num negative">-0.0165</td>
+                        <td class="negative">
+                            VENDA
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>INJUSDT</strong></td>
+                        <td class="num positive">1.033</td>
+                        <td class="num negative">46.3%</td>
+                        <td class="num negative">-0.0095</td>
+                        <td class="neutral">
+                            NEUTRO
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>LINKUSDT</strong></td>
+                        <td class="num negative">0.973</td>
+                        <td class="num negative">39.8%</td>
+                        <td class="num negative">-0.0284</td>
+                        <td class="negative">
+                            VENDA
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>LTCUSDT</strong></td>
+                        <td class="num positive">1.020</td>
+                        <td class="num negative">46.7%</td>
+                        <td class="num negative">-0.0078</td>
+                        <td class="neutral">
+                            NEUTRO
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>MATICUSDT</strong></td>
+                        <td class="num positive">1.014</td>
+                        <td class="num negative">47.4%</td>
+                        <td class="num negative">-0.0083</td>
+                        <td class="neutral">
+                            NEUTRO
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>NEARUSDT</strong></td>
+                        <td class="num positive">1.013</td>
+                        <td class="num negative">47.8%</td>
+                        <td class="num negative">-0.0040</td>
+                        <td class="neutral">
+                            NEUTRO
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>OPUSDT</strong></td>
+                        <td class="num positive">1.014</td>
+                        <td class="num negative">45.7%</td>
+                        <td class="num negative">-0.0108</td>
+                        <td class="negative">
+                            VENDA
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>SEIUSDT</strong></td>
+                        <td class="num positive">1.036</td>
+                        <td class="num negative">49.5%</td>
+                        <td class="num negative">-0.0038</td>
+                        <td class="neutral">
+                            NEUTRO
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>SOLUSDT</strong></td>
+                        <td class="num positive">1.025</td>
+                        <td class="num negative">49.4%</td>
+                        <td class="num negative">-0.0002</td>
+                        <td class="neutral">
+                            NEUTRO
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>SUIUSDT</strong></td>
+                        <td class="num positive">1.031</td>
+                        <td class="num positive">51.3%</td>
+                        <td class="num positive">0.0056</td>
+                        <td class="neutral">
+                            NEUTRO
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>TIAUSDT</strong></td>
+                        <td class="num positive">1.014</td>
+                        <td class="num negative">46.7%</td>
+                        <td class="num negative">-0.0094</td>
+                        <td class="neutral">
+                            NEUTRO
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>TRXUSDT</strong></td>
+                        <td class="num positive">1.127</td>
+                        <td class="num positive">53.2%</td>
+                        <td class="num positive">0.0047</td>
+                        <td class="neutral">
+                            NEUTRO
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>UNIUSDT</strong></td>
+                        <td class="num positive">1.028</td>
+                        <td class="num negative">45.6%</td>
+                        <td class="num negative">-0.0115</td>
+                        <td class="negative">
+                            VENDA
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>XRPUSDT</strong></td>
+                        <td class="num negative">0.958</td>
+                        <td class="num negative">37.6%</td>
+                        <td class="num negative">-0.0229</td>
+                        <td class="negative">
+                            VENDA
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Gap Analysis -->
+        <div class="card">
+            <h2>4. Analise de Gaps (Lacunas de Preco)</h2>
+            <div class="insight">
+                Gaps grandes (open != close anterior) indicam movimentos repentinos: news, manipulacao, ou bots agindo em horarios de baixa liquidez.
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Simbolo</th>
+                        <th class="num">Gap Medio</th>
+                        <th class="num">Gap Max</th>
+                        <th class="num">Gap Min</th>
+                        <th class="num">Gaps Grandes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>ADAUSDT</td>
+                        <td class="num">0.000%</td>
+                        <td class="num positive">0.18%</td>
+                        <td class="num negative">-0.09%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>APTUSDT</td>
+                        <td class="num">0.000%</td>
+                        <td class="num positive">0.22%</td>
+                        <td class="num negative">-0.28%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>ARBUSDT</td>
+                        <td class="num">-0.001%</td>
+                        <td class="num positive">0.17%</td>
+                        <td class="num negative">-0.10%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>ATOMUSDT</td>
+                        <td class="num">0.001%</td>
+                        <td class="num positive">0.18%</td>
+                        <td class="num negative">-0.14%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>AVAXUSDT</td>
+                        <td class="num">0.001%</td>
+                        <td class="num positive">0.11%</td>
+                        <td class="num negative">-0.12%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>BCHUSDT</td>
+                        <td class="num">-0.000%</td>
+                        <td class="num positive">0.16%</td>
+                        <td class="num negative">-0.15%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>BNBUSDT</td>
+                        <td class="num">0.002%</td>
+                        <td class="num positive">0.03%</td>
+                        <td class="num negative">-0.03%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>BTCUSDT</td>
+                        <td class="num">0.000%</td>
+                        <td class="num positive">0.01%</td>
+                        <td class="num negative">-0.01%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>DOGEUSDT</td>
+                        <td class="num">-0.000%</td>
+                        <td class="num positive">0.05%</td>
+                        <td class="num negative">-0.07%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>DOTUSDT</td>
+                        <td class="num">0.000%</td>
+                        <td class="num positive">0.12%</td>
+                        <td class="num negative">-0.14%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>ETHUSDT</td>
+                        <td class="num">0.000%</td>
+                        <td class="num positive">0.01%</td>
+                        <td class="num negative">-0.02%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>FILUSDT</td>
+                        <td class="num">-0.001%</td>
+                        <td class="num positive">0.14%</td>
+                        <td class="num negative">-0.15%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>INJUSDT</td>
+                        <td class="num">0.000%</td>
+                        <td class="num positive">0.22%</td>
+                        <td class="num negative">-0.16%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>LINKUSDT</td>
+                        <td class="num">-0.000%</td>
+                        <td class="num positive">0.13%</td>
+                        <td class="num negative">-0.14%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>LTCUSDT</td>
+                        <td class="num">-0.000%</td>
+                        <td class="num positive">0.09%</td>
+                        <td class="num negative">-0.08%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>MATICUSDT</td>
+                        <td class="num">-0.001%</td>
+                        <td class="num positive">0.11%</td>
+                        <td class="num negative">-0.09%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>NEARUSDT</td>
+                        <td class="num">-0.001%</td>
+                        <td class="num positive">0.12%</td>
+                        <td class="num negative">-0.14%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>OPUSDT</td>
+                        <td class="num">-0.000%</td>
+                        <td class="num positive">0.15%</td>
+                        <td class="num negative">-0.16%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>SEIUSDT</td>
+                        <td class="num">-0.001%</td>
+                        <td class="num positive">0.13%</td>
+                        <td class="num negative">-0.15%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>SOLUSDT</td>
+                        <td class="num">-0.000%</td>
+                        <td class="num positive">0.07%</td>
+                        <td class="num negative">-0.03%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>SUIUSDT</td>
+                        <td class="num">-0.000%</td>
+                        <td class="num positive">0.15%</td>
+                        <td class="num negative">-0.12%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>TIAUSDT</td>
+                        <td class="num">-0.001%</td>
+                        <td class="num positive">0.16%</td>
+                        <td class="num negative">-0.28%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>TRXUSDT</td>
+                        <td class="num">-0.000%</td>
+                        <td class="num positive">0.08%</td>
+                        <td class="num negative">-0.08%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>UNIUSDT</td>
+                        <td class="num">-0.000%</td>
+                        <td class="num positive">0.15%</td>
+                        <td class="num negative">-0.18%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                    <tr>
+                        <td>XRPUSDT</td>
+                        <td class="num">-0.002%</td>
+                        <td class="num positive">0.05%</td>
+                        <td class="num negative">-0.05%</td>
+                        <td class="num ">0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Wick Analysis by Hour -->
+        <div class="card full">
+            <h2>5. Rejeicoes por Hora (Wick Analysis)</h2>
+            <div class="insight">
+                <strong>Upper wick alto</strong>: preco subiu mas foi rejeitado (vendedores forte). <strong>Lower wick alto</strong>: preco caiu mas foi rejeitado (compradores forte).
+                Horas com mais lower wick = suporte forte. Horas com mais upper wick = resistencia forte.
+            </div>
+            <div id="chart-wick-hour" class="chart large"></div>
+        </div>
+
+        <!-- Volume Profile -->
+        <div class="card full">
+            <h2>6. Volume Profile: Onde o Volume Se Concentra por Nivel de Preco</h2>
+            <div class="insight">
+                <strong>POC (Point of Control)</strong>: nivel de preco com maior volume = zona de batalha principal.
+                <strong>HVN (High Volume Nodes)</strong>: zonas de suporte/resistencia forte.
+                <strong>LVN (Low Volume Nodes)</strong>: zonas de movimento rapido (pouca resistencia).
+            </div>
+            <div class="tabs" id="vp-tabs">
+                <button class="tab active" onclick="showTab('vp-0')">ADAUSDT</button><button class="tab " onclick="showTab('vp-1')">APTUSDT</button><button class="tab " onclick="showTab('vp-2')">ARBUSDT</button><button class="tab " onclick="showTab('vp-3')">ATOMUSDT</button><button class="tab " onclick="showTab('vp-4')">AVAXUSDT</button><button class="tab " onclick="showTab('vp-5')">BCHUSDT</button><button class="tab " onclick="showTab('vp-6')">BNBUSDT</button><button class="tab " onclick="showTab('vp-7')">BTCUSDT</button><button class="tab " onclick="showTab('vp-8')">DOGEUSDT</button><button class="tab " onclick="showTab('vp-9')">DOTUSDT</button>
+            </div>
+            
+            <div id="vp-0" class="tab-content active">
+                <div class="stat-grid">
+                    <div class="stat-box"><div class="value">0.35</div><div class="label">POC</div></div>
+                    <div class="stat-box"><div class="value">0.85</div><div class="label">Preco Atual</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">HVN Nodes</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">LVN Nodes</div></div>
+                </div>
+                <div id="chart-vp-0" class="chart large"></div>
+            </div>
+            <div id="vp-1" class="tab-content ">
+                <div class="stat-grid">
+                    <div class="stat-box"><div class="value">8.98</div><div class="label">POC</div></div>
+                    <div class="stat-box"><div class="value">8.71</div><div class="label">Preco Atual</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">HVN Nodes</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">LVN Nodes</div></div>
+                </div>
+                <div id="chart-vp-1" class="chart large"></div>
+            </div>
+            <div id="vp-2" class="tab-content ">
+                <div class="stat-grid">
+                    <div class="stat-box"><div class="value">0.57</div><div class="label">POC</div></div>
+                    <div class="stat-box"><div class="value">0.72</div><div class="label">Preco Atual</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">HVN Nodes</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">LVN Nodes</div></div>
+                </div>
+                <div id="chart-vp-2" class="chart large"></div>
+            </div>
+            <div id="vp-3" class="tab-content ">
+                <div class="stat-grid">
+                    <div class="stat-box"><div class="value">4.60</div><div class="label">POC</div></div>
+                    <div class="stat-box"><div class="value">6.19</div><div class="label">Preco Atual</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">HVN Nodes</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">LVN Nodes</div></div>
+                </div>
+                <div id="chart-vp-3" class="chart large"></div>
+            </div>
+            <div id="vp-4" class="tab-content ">
+                <div class="stat-grid">
+                    <div class="stat-box"><div class="value">36.05</div><div class="label">POC</div></div>
+                    <div class="stat-box"><div class="value">35.71</div><div class="label">Preco Atual</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">HVN Nodes</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">LVN Nodes</div></div>
+                </div>
+                <div id="chart-vp-4" class="chart large"></div>
+            </div>
+            <div id="vp-5" class="tab-content ">
+                <div class="stat-grid">
+                    <div class="stat-box"><div class="value">439.99</div><div class="label">POC</div></div>
+                    <div class="stat-box"><div class="value">434.50</div><div class="label">Preco Atual</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">HVN Nodes</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">LVN Nodes</div></div>
+                </div>
+                <div id="chart-vp-5" class="chart large"></div>
+            </div>
+            <div id="vp-6" class="tab-content ">
+                <div class="stat-grid">
+                    <div class="stat-box"><div class="value">586.25</div><div class="label">POC</div></div>
+                    <div class="stat-box"><div class="value">702.30</div><div class="label">Preco Atual</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">HVN Nodes</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">LVN Nodes</div></div>
+                </div>
+                <div id="chart-vp-6" class="chart large"></div>
+            </div>
+            <div id="vp-7" class="tab-content ">
+                <div class="stat-grid">
+                    <div class="stat-box"><div class="value">67172.18</div><div class="label">POC</div></div>
+                    <div class="stat-box"><div class="value">93576.00</div><div class="label">Preco Atual</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">HVN Nodes</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">LVN Nodes</div></div>
+                </div>
+                <div id="chart-vp-7" class="chart large"></div>
+            </div>
+            <div id="vp-8" class="tab-content ">
+                <div class="stat-grid">
+                    <div class="stat-box"><div class="value">0.16</div><div class="label">POC</div></div>
+                    <div class="stat-box"><div class="value">0.32</div><div class="label">Preco Atual</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">HVN Nodes</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">LVN Nodes</div></div>
+                </div>
+                <div id="chart-vp-8" class="chart large"></div>
+            </div>
+            <div id="vp-9" class="tab-content ">
+                <div class="stat-grid">
+                    <div class="stat-box"><div class="value">6.99</div><div class="label">POC</div></div>
+                    <div class="stat-box"><div class="value">6.64</div><div class="label">Preco Atual</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">HVN Nodes</div></div>
+                    <div class="stat-box"><div class="value">10</div><div class="label">LVN Nodes</div></div>
+                </div>
+                <div id="chart-vp-9" class="chart large"></div>
+            </div>
+        </div>
+
+        <!-- Round Number Clustering -->
+        <div class="card">
+            <h2>7. Clustering em Numeros Redondos (Alvos Psicologicos)</h2>
+            <div class="insight">
+                Se precos se agrupam perto de numeros redondos ($100, $1000, $50000), isso indica que bots/operadores estao direcionando precos para niveis psicologicos.
+                <strong>Clustering factor > 1</strong> = mais clustering que o esperado ao acaso.
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Simbolo</th>
+                        <th class="num">Preco Atual</th>
+                        <th class="num">% Perto Round</th>
+                        <th class="num">Clustering Factor</th>
+                        <th>Interpretacao</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>ADAUSDT</td>
+                        <td class="num">0.8451</td>
+                        <td class="num">52.8%</td>
+                        <td class="num positive">26.53x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>APTUSDT</td>
+                        <td class="num">8.7100</td>
+                        <td class="num">85.6%</td>
+                        <td class="num positive">42.99x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>ARBUSDT</td>
+                        <td class="num">0.7222</td>
+                        <td class="num">74.8%</td>
+                        <td class="num positive">37.60x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>ATOMUSDT</td>
+                        <td class="num">6.1900</td>
+                        <td class="num">73.2%</td>
+                        <td class="num positive">36.79x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>AVAXUSDT</td>
+                        <td class="num">35.7100</td>
+                        <td class="num">34.6%</td>
+                        <td class="num positive">17.41x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>BCHUSDT</td>
+                        <td class="num">434.5000</td>
+                        <td class="num">38.6%</td>
+                        <td class="num positive">19.41x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>BNBUSDT</td>
+                        <td class="num">702.3000</td>
+                        <td class="num">53.4%</td>
+                        <td class="num positive">26.84x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>BTCUSDT</td>
+                        <td class="num">93576.0000</td>
+                        <td class="num">68.1%</td>
+                        <td class="num positive">34.24x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>DOGEUSDT</td>
+                        <td class="num">0.3160</td>
+                        <td class="num">16.8%</td>
+                        <td class="num positive">8.46x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>DOTUSDT</td>
+                        <td class="num">6.6430</td>
+                        <td class="num">66.0%</td>
+                        <td class="num positive">33.16x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>ETHUSDT</td>
+                        <td class="num">3337.7800</td>
+                        <td class="num">31.6%</td>
+                        <td class="num positive">15.88x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>FILUSDT</td>
+                        <td class="num">4.9530</td>
+                        <td class="num">54.6%</td>
+                        <td class="num positive">27.43x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>INJUSDT</td>
+                        <td class="num">19.6200</td>
+                        <td class="num">27.8%</td>
+                        <td class="num positive">13.97x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>LINKUSDT</td>
+                        <td class="num">20.0100</td>
+                        <td class="num">15.6%</td>
+                        <td class="num positive">7.83x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>LTCUSDT</td>
+                        <td class="num">103.2800</td>
+                        <td class="num">8.8%</td>
+                        <td class="num positive">4.40x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>MATICUSDT</td>
+                        <td class="num">0.3794</td>
+                        <td class="num">70.4%</td>
+                        <td class="num positive">35.39x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>NEARUSDT</td>
+                        <td class="num">4.9130</td>
+                        <td class="num">53.1%</td>
+                        <td class="num positive">26.67x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>OPUSDT</td>
+                        <td class="num">1.7530</td>
+                        <td class="num">23.8%</td>
+                        <td class="num positive">11.96x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>SEIUSDT</td>
+                        <td class="num">0.3967</td>
+                        <td class="num">54.0%</td>
+                        <td class="num positive">27.12x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>SOLUSDT</td>
+                        <td class="num">189.3100</td>
+                        <td class="num">13.2%</td>
+                        <td class="num positive">6.64x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>SUIUSDT</td>
+                        <td class="num">4.1225</td>
+                        <td class="num">16.7%</td>
+                        <td class="num positive">8.41x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>TIAUSDT</td>
+                        <td class="num">4.6210</td>
+                        <td class="num">75.9%</td>
+                        <td class="num positive">38.13x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>TRXUSDT</td>
+                        <td class="num">0.2548</td>
+                        <td class="num">16.3%</td>
+                        <td class="num positive">8.20x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>UNIUSDT</td>
+                        <td class="num">13.2430</td>
+                        <td class="num">10.2%</td>
+                        <td class="num positive">5.11x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                    <tr>
+                        <td>XRPUSDT</td>
+                        <td class="num">2.0836</td>
+                        <td class="num">7.7%</td>
+                        <td class="num positive">3.86x</td>
+                        <td class="positive">SIM - alvos psicologicos</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Order Flow Imbalance -->
+        <div class="card">
+            <h2>8. Order Flow: Compra Real vs Absorcao</h2>
+            <div class="insight">
+                <strong>True Buy</strong>: compra agressiva + preco subiu = compra real. <strong>Absorption Buy</strong>: compra agressiva mas preco nao subiu = alguem absorvendo as compras (vendedor grande).
+                Absorcao alta = possivel distribuicao (smart money vendendo).
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Simbolo</th>
+                        <th class="num">True Buy</th>
+                        <th class="num">True Sell</th>
+                        <th class="num">Absorp. Buy</th>
+                        <th class="num">Absorp. Sell</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>ADAUSDT</td>
+                        <td class="num positive">13.4%</td>
+                        <td class="num negative">19.1%</td>
+                        <td class="num ">3.1%</td>
+                        <td class="num ">5.7%</td>
+                    </tr>
+                    <tr>
+                        <td>APTUSDT</td>
+                        <td class="num positive">16.5%</td>
+                        <td class="num negative">19.5%</td>
+                        <td class="num ">5.2%</td>
+                        <td class="num ">6.6%</td>
+                    </tr>
+                    <tr>
+                        <td>ARBUSDT</td>
+                        <td class="num positive">16.6%</td>
+                        <td class="num negative">12.3%</td>
+                        <td class="num ">4.5%</td>
+                        <td class="num ">2.8%</td>
+                    </tr>
+                    <tr>
+                        <td>ATOMUSDT</td>
+                        <td class="num positive">15.8%</td>
+                        <td class="num negative">19.3%</td>
+                        <td class="num ">5.8%</td>
+                        <td class="num ">7.8%</td>
+                    </tr>
+                    <tr>
+                        <td>AVAXUSDT</td>
+                        <td class="num positive">14.3%</td>
+                        <td class="num negative">19.9%</td>
+                        <td class="num ">3.5%</td>
+                        <td class="num ">5.9%</td>
+                    </tr>
+                    <tr>
+                        <td>BCHUSDT</td>
+                        <td class="num positive">18.1%</td>
+                        <td class="num negative">18.6%</td>
+                        <td class="num ">8.7%</td>
+                        <td class="num ">9.1%</td>
+                    </tr>
+                    <tr>
+                        <td>BNBUSDT</td>
+                        <td class="num positive">18.1%</td>
+                        <td class="num negative">18.8%</td>
+                        <td class="num ">3.3%</td>
+                        <td class="num ">4.0%</td>
+                    </tr>
+                    <tr>
+                        <td>BTCUSDT</td>
+                        <td class="num positive">14.2%</td>
+                        <td class="num negative">19.8%</td>
+                        <td class="num ">1.9%</td>
+                        <td class="num ">4.3%</td>
+                    </tr>
+                    <tr>
+                        <td>DOGEUSDT</td>
+                        <td class="num positive">9.7%</td>
+                        <td class="num negative">17.8%</td>
+                        <td class="num ">2.0%</td>
+                        <td class="num ">6.2%</td>
+                    </tr>
+                    <tr>
+                        <td>DOTUSDT</td>
+                        <td class="num positive">13.6%</td>
+                        <td class="num negative">20.6%</td>
+                        <td class="num ">4.6%</td>
+                        <td class="num ">8.8%</td>
+                    </tr>
+                    <tr>
+                        <td>ETHUSDT</td>
+                        <td class="num positive">16.1%</td>
+                        <td class="num negative">16.4%</td>
+                        <td class="num ">2.9%</td>
+                        <td class="num ">3.0%</td>
+                    </tr>
+                    <tr>
+                        <td>FILUSDT</td>
+                        <td class="num positive">16.2%</td>
+                        <td class="num negative">20.8%</td>
+                        <td class="num ">4.6%</td>
+                        <td class="num ">7.1%</td>
+                    </tr>
+                    <tr>
+                        <td>INJUSDT</td>
+                        <td class="num positive">19.8%</td>
+                        <td class="num negative">23.0%</td>
+                        <td class="num ">4.7%</td>
+                        <td class="num ">6.1%</td>
+                    </tr>
+                    <tr>
+                        <td>LINKUSDT</td>
+                        <td class="num positive">12.3%</td>
+                        <td class="num negative">21.3%</td>
+                        <td class="num ">3.9%</td>
+                        <td class="num ">9.3%</td>
+                    </tr>
+                    <tr>
+                        <td>LTCUSDT</td>
+                        <td class="num positive">14.9%</td>
+                        <td class="num negative">17.5%</td>
+                        <td class="num ">5.1%</td>
+                        <td class="num ">6.3%</td>
+                    </tr>
+                    <tr>
+                        <td>MATICUSDT</td>
+                        <td class="num positive">11.5%</td>
+                        <td class="num negative">13.6%</td>
+                        <td class="num ">5.0%</td>
+                        <td class="num ">7.0%</td>
+                    </tr>
+                    <tr>
+                        <td>NEARUSDT</td>
+                        <td class="num positive">13.8%</td>
+                        <td class="num negative">17.2%</td>
+                        <td class="num ">3.2%</td>
+                        <td class="num ">3.5%</td>
+                    </tr>
+                    <tr>
+                        <td>OPUSDT</td>
+                        <td class="num positive">16.1%</td>
+                        <td class="num negative">20.7%</td>
+                        <td class="num ">5.0%</td>
+                        <td class="num ">6.8%</td>
+                    </tr>
+                    <tr>
+                        <td>SEIUSDT</td>
+                        <td class="num positive">17.2%</td>
+                        <td class="num negative">19.0%</td>
+                        <td class="num ">4.9%</td>
+                        <td class="num ">4.1%</td>
+                    </tr>
+                    <tr>
+                        <td>SOLUSDT</td>
+                        <td class="num positive">15.7%</td>
+                        <td class="num negative">15.9%</td>
+                        <td class="num ">2.6%</td>
+                        <td class="num ">2.9%</td>
+                    </tr>
+                    <tr>
+                        <td>SUIUSDT</td>
+                        <td class="num positive">11.5%</td>
+                        <td class="num negative">11.5%</td>
+                        <td class="num ">4.6%</td>
+                        <td class="num ">3.7%</td>
+                    </tr>
+                    <tr>
+                        <td>TIAUSDT</td>
+                        <td class="num positive">16.3%</td>
+                        <td class="num negative">21.7%</td>
+                        <td class="num ">4.2%</td>
+                        <td class="num ">5.2%</td>
+                    </tr>
+                    <tr>
+                        <td>TRXUSDT</td>
+                        <td class="num positive">28.5%</td>
+                        <td class="num negative">22.7%</td>
+                        <td class="num ">4.1%</td>
+                        <td class="num ">4.2%</td>
+                    </tr>
+                    <tr>
+                        <td>UNIUSDT</td>
+                        <td class="num positive">15.8%</td>
+                        <td class="num negative">19.9%</td>
+                        <td class="num ">6.1%</td>
+                        <td class="num ">8.7%</td>
+                    </tr>
+                    <tr>
+                        <td>XRPUSDT</td>
+                        <td class="num positive">8.3%</td>
+                        <td class="num negative">19.3%</td>
+                        <td class="num ">2.0%</td>
+                        <td class="num ">6.6%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- OFI by Hour -->
+        <div class="card full">
+            <h2>9. Order Flow Imbalance por Hora</h2>
+            <div class="insight">
+                Mostra a aggressao liquida (compra - venda) por hora. Horas com OFI positivo = pressao de compra. Horas com OFI negativo = pressao de venda.
+                Isso revela em quais horarios os bots estao comprando vs vendendo.
+            </div>
+            <div id="chart-ofi-hour" class="chart"></div>
+        </div>
+
+        <!-- Price Magnetism -->
+        <div class="card">
+            <h2>10. Magnetismo de Preco (Reversao a VWAP)</h2>
+            <div class="insight">
+                Apos o preco se afastar do VWAP, ele tende a voltar? <strong>Taxa de reversao > 55%</strong> indica forte magnetismo (mean reversion).
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Simbolo</th>
+                        <th class="num">Rev. 1 Bar</th>
+                        <th class="num">Rev. 3 Bars</th>
+                        <th class="num">Rev. 6 Bars</th>
+                        <th>Forca</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>ADAUSDT</td>
+                        <td class="num">51.5%</td>
+                        <td class="num">50.1%</td>
+                        <td class="num ">50.7%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>APTUSDT</td>
+                        <td class="num">51.0%</td>
+                        <td class="num">50.4%</td>
+                        <td class="num ">50.8%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>ARBUSDT</td>
+                        <td class="num">51.4%</td>
+                        <td class="num">50.8%</td>
+                        <td class="num ">50.6%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>ATOMUSDT</td>
+                        <td class="num">50.4%</td>
+                        <td class="num">51.4%</td>
+                        <td class="num ">50.7%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>AVAXUSDT</td>
+                        <td class="num">50.6%</td>
+                        <td class="num">50.7%</td>
+                        <td class="num ">50.9%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>BCHUSDT</td>
+                        <td class="num">51.5%</td>
+                        <td class="num">51.1%</td>
+                        <td class="num ">50.9%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>BNBUSDT</td>
+                        <td class="num">50.9%</td>
+                        <td class="num">51.2%</td>
+                        <td class="num ">50.1%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>BTCUSDT</td>
+                        <td class="num">52.0%</td>
+                        <td class="num">52.0%</td>
+                        <td class="num ">51.8%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>DOGEUSDT</td>
+                        <td class="num">51.4%</td>
+                        <td class="num">51.7%</td>
+                        <td class="num ">51.1%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>DOTUSDT</td>
+                        <td class="num">50.4%</td>
+                        <td class="num">51.0%</td>
+                        <td class="num ">51.5%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>ETHUSDT</td>
+                        <td class="num">52.7%</td>
+                        <td class="num">52.3%</td>
+                        <td class="num ">51.4%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>FILUSDT</td>
+                        <td class="num">50.7%</td>
+                        <td class="num">50.4%</td>
+                        <td class="num ">50.8%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>INJUSDT</td>
+                        <td class="num">51.4%</td>
+                        <td class="num">51.0%</td>
+                        <td class="num ">51.5%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>LINKUSDT</td>
+                        <td class="num">50.6%</td>
+                        <td class="num">50.1%</td>
+                        <td class="num ">50.8%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>LTCUSDT</td>
+                        <td class="num">50.8%</td>
+                        <td class="num">51.0%</td>
+                        <td class="num ">51.4%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>MATICUSDT</td>
+                        <td class="num">51.3%</td>
+                        <td class="num">50.5%</td>
+                        <td class="num ">51.7%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>NEARUSDT</td>
+                        <td class="num">50.5%</td>
+                        <td class="num">50.4%</td>
+                        <td class="num ">51.0%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>OPUSDT</td>
+                        <td class="num">51.0%</td>
+                        <td class="num">50.5%</td>
+                        <td class="num ">50.6%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>SEIUSDT</td>
+                        <td class="num">51.1%</td>
+                        <td class="num">50.1%</td>
+                        <td class="num ">50.3%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>SOLUSDT</td>
+                        <td class="num">51.4%</td>
+                        <td class="num">51.4%</td>
+                        <td class="num ">51.0%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>SUIUSDT</td>
+                        <td class="num">50.3%</td>
+                        <td class="num">50.6%</td>
+                        <td class="num ">50.3%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>TIAUSDT</td>
+                        <td class="num">50.0%</td>
+                        <td class="num">50.1%</td>
+                        <td class="num ">50.7%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>TRXUSDT</td>
+                        <td class="num">49.7%</td>
+                        <td class="num">49.6%</td>
+                        <td class="num ">50.0%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>UNIUSDT</td>
+                        <td class="num">51.1%</td>
+                        <td class="num">50.5%</td>
+                        <td class="num ">51.5%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                    <tr>
+                        <td>XRPUSDT</td>
+                        <td class="num">51.6%</td>
+                        <td class="num">50.7%</td>
+                        <td class="num ">51.0%</td>
+                        <td class="neutral">Fraco</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Candle Anatomy by Hour -->
+        <div class="card full">
+            <h2>11. Anatomia das Velas por Hora (Body vs Wick)</h2>
+            <div class="insight">
+                <strong>Body ratio alto</strong>: velas com corpo grande = conviccao (movimento direcional forte).
+                <strong>% Bull alto</strong>: mais velas verdes que vermelhas = tendencia de compra.
+            </div>
+            <div id="chart-anatomy-hour" class="chart large"></div>
+        </div>
+
+        <!-- Accumulation/Distribution -->
+        <div class="card">
+            <h2>12. Fases: Acumulacao vs Distribuicao</h2>
+            <div class="insight">
+                <strong>Acumulacao</strong>: preco flat + volume alto = smart money comprando discretamente.
+                <strong>Distribuicao</strong>: preco subindo + volume alto = smart money vendendo.
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Simbolo</th>
+                        <th class="num">Acumul.</th>
+                        <th class="num">Distrib.</th>
+                        <th class="num">Markup</th>
+                        <th class="num">Markdown</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>ADAUSDT</td>
+                        <td class="num positive">4.7%</td>
+                        <td class="num negative">3.8%</td>
+                        <td class="num positive">6.3%</td>
+                        <td class="num negative">4.8%</td>
+                    </tr>
+                    <tr>
+                        <td>APTUSDT</td>
+                        <td class="num positive">4.6%</td>
+                        <td class="num negative">4.5%</td>
+                        <td class="num positive">7.9%</td>
+                        <td class="num negative">7.3%</td>
+                    </tr>
+                    <tr>
+                        <td>ARBUSDT</td>
+                        <td class="num positive">4.1%</td>
+                        <td class="num negative">3.4%</td>
+                        <td class="num positive">6.8%</td>
+                        <td class="num negative">6.7%</td>
+                    </tr>
+                    <tr>
+                        <td>ATOMUSDT</td>
+                        <td class="num positive">4.8%</td>
+                        <td class="num negative">3.6%</td>
+                        <td class="num positive">4.9%</td>
+                        <td class="num negative">5.8%</td>
+                    </tr>
+                    <tr>
+                        <td>AVAXUSDT</td>
+                        <td class="num positive">4.2%</td>
+                        <td class="num negative">3.3%</td>
+                        <td class="num positive">8.7%</td>
+                        <td class="num negative">6.8%</td>
+                    </tr>
+                    <tr>
+                        <td>BCHUSDT</td>
+                        <td class="num positive">6.0%</td>
+                        <td class="num negative">5.6%</td>
+                        <td class="num positive">7.4%</td>
+                        <td class="num negative">5.1%</td>
+                    </tr>
+                    <tr>
+                        <td>BNBUSDT</td>
+                        <td class="num positive">7.0%</td>
+                        <td class="num negative">6.9%</td>
+                        <td class="num positive">3.1%</td>
+                        <td class="num negative">1.9%</td>
+                    </tr>
+                    <tr>
+                        <td>BTCUSDT</td>
+                        <td class="num positive">8.9%</td>
+                        <td class="num negative">6.6%</td>
+                        <td class="num positive">2.7%</td>
+                        <td class="num negative">1.7%</td>
+                    </tr>
+                    <tr>
+                        <td>DOGEUSDT</td>
+                        <td class="num positive">4.0%</td>
+                        <td class="num negative">4.2%</td>
+                        <td class="num positive">8.7%</td>
+                        <td class="num negative">6.6%</td>
+                    </tr>
+                    <tr>
+                        <td>DOTUSDT</td>
+                        <td class="num positive">4.7%</td>
+                        <td class="num negative">5.0%</td>
+                        <td class="num positive">5.0%</td>
+                        <td class="num negative">5.7%</td>
+                    </tr>
+                    <tr>
+                        <td>ETHUSDT</td>
+                        <td class="num positive">5.7%</td>
+                        <td class="num negative">5.6%</td>
+                        <td class="num positive">3.6%</td>
+                        <td class="num negative">3.9%</td>
+                    </tr>
+                    <tr>
+                        <td>FILUSDT</td>
+                        <td class="num positive">3.1%</td>
+                        <td class="num negative">3.9%</td>
+                        <td class="num positive">7.9%</td>
+                        <td class="num negative">6.9%</td>
+                    </tr>
+                    <tr>
+                        <td>INJUSDT</td>
+                        <td class="num positive">2.9%</td>
+                        <td class="num negative">4.0%</td>
+                        <td class="num positive">10.3%</td>
+                        <td class="num negative">9.2%</td>
+                    </tr>
+                    <tr>
+                        <td>LINKUSDT</td>
+                        <td class="num positive">4.6%</td>
+                        <td class="num negative">4.6%</td>
+                        <td class="num positive">6.7%</td>
+                        <td class="num negative">5.3%</td>
+                    </tr>
+                    <tr>
+                        <td>LTCUSDT</td>
+                        <td class="num positive">5.3%</td>
+                        <td class="num negative">3.9%</td>
+                        <td class="num positive">4.0%</td>
+                        <td class="num negative">3.9%</td>
+                    </tr>
+                    <tr>
+                        <td>MATICUSDT</td>
+                        <td class="num positive">5.3%</td>
+                        <td class="num negative">4.0%</td>
+                        <td class="num positive">4.3%</td>
+                        <td class="num negative">7.0%</td>
+                    </tr>
+                    <tr>
+                        <td>NEARUSDT</td>
+                        <td class="num positive">3.2%</td>
+                        <td class="num negative">2.8%</td>
+                        <td class="num positive">11.0%</td>
+                        <td class="num negative">7.7%</td>
+                    </tr>
+                    <tr>
+                        <td>OPUSDT</td>
+                        <td class="num positive">4.5%</td>
+                        <td class="num negative">4.2%</td>
+                        <td class="num positive">8.1%</td>
+                        <td class="num negative">8.4%</td>
+                    </tr>
+                    <tr>
+                        <td>SEIUSDT</td>
+                        <td class="num positive">2.4%</td>
+                        <td class="num negative">2.9%</td>
+                        <td class="num positive">11.6%</td>
+                        <td class="num negative">8.6%</td>
+                    </tr>
+                    <tr>
+                        <td>SOLUSDT</td>
+                        <td class="num positive">3.6%</td>
+                        <td class="num negative">4.1%</td>
+                        <td class="num positive">6.5%</td>
+                        <td class="num negative">6.2%</td>
+                    </tr>
+                    <tr>
+                        <td>SUIUSDT</td>
+                        <td class="num positive">3.5%</td>
+                        <td class="num negative">3.2%</td>
+                        <td class="num positive">11.7%</td>
+                        <td class="num negative">7.5%</td>
+                    </tr>
+                    <tr>
+                        <td>TIAUSDT</td>
+                        <td class="num positive">2.8%</td>
+                        <td class="num negative">3.2%</td>
+                        <td class="num positive">10.9%</td>
+                        <td class="num negative">9.3%</td>
+                    </tr>
+                    <tr>
+                        <td>TRXUSDT</td>
+                        <td class="num positive">9.8%</td>
+                        <td class="num negative">4.5%</td>
+                        <td class="num positive">1.9%</td>
+                        <td class="num negative">1.1%</td>
+                    </tr>
+                    <tr>
+                        <td>UNIUSDT</td>
+                        <td class="num positive">4.8%</td>
+                        <td class="num negative">5.0%</td>
+                        <td class="num positive">8.2%</td>
+                        <td class="num negative">6.7%</td>
+                    </tr>
+                    <tr>
+                        <td>XRPUSDT</td>
+                        <td class="num positive">8.2%</td>
+                        <td class="num negative">6.0%</td>
+                        <td class="num positive">4.8%</td>
+                        <td class="num negative">3.3%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        const avgHour = {"hours": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], "ratio": [1.0062980094066534, 1.0078817621947516, 1.0197085442259048, 1.0327129991397628, 1.0188176457421956, 1.0261460076614162, 1.0292938383293369, 1.0234645040950923, 1.0143609207817128, 1.0238863213715212, 1.0202340937358036, 1.019894997686531, 1.0080760080416302, 1.010987885942761, 1.0115183708044444, 1.015362236514229, 1.000918679435071, 1.0235820502152402, 1.0193727957992176, 1.0231606322706335, 1.0254553645551254, 1.031708393950148, 1.0386088161021414, 1.024620497061673], "net_pct": [-0.006159790264137376, -0.01993619242872616, -0.01074202306945417, -0.0020511318429618846, -0.0028116589325334214, -0.008838657588817586, -0.0034731951453648748, -0.006045582372467074, -0.0082155384643045, -0.0039395735281262615, -0.00954337201209181, -0.009391089810598701, -0.012756441212357954, -0.010416732116006872, -0.007815422363719559, -0.006868882805846932, -0.012222618701672556, -0.00978164885717416, -0.010031945198767662, -0.015489405660785932, -0.009230764729069186, -0.0016646395728304316, 0.0034966008684458815, -0.0005347707260183273]};
+        const wickAvgHour = {"hours": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], "upper_wick": [0.27645570098213484, 0.26489166783333734, 0.2602739438335881, 0.26483013670922523, 0.26864509774057665, 0.2568673852702114, 0.26755162785314324, 0.2746374032628316, 0.2702872235028939, 0.27968323980559523, 0.2622052369540128, 0.272307699087984, 0.28745983857250285, 0.25839162793150694, 0.26575282300069647, 0.25776859636182053, 0.27384834500034405, 0.268044702051388, 0.2617226344425258, 0.2530256272891257, 0.2793630060694291, 0.2521164986642702, 0.261438291466596, 0.265744525297905], "lower_wick": [0.27368110518317945, 0.28791719379018804, 0.2860999618309684, 0.27920734712643663, 0.2770593582481657, 0.2841123727732601, 0.26679460314805065, 0.26362708503698146, 0.2634605233215478, 0.2821215807893958, 0.2930187564220377, 0.28046618277490665, 0.2779397272123209, 0.287562256357918, 0.2892362456176889, 0.2862283540112511, 0.29373556941477796, 0.28788161737563167, 0.30020399242100815, 0.3021174904852053, 0.2790093215184209, 0.30531234814542485, 0.2947255460233869, 0.2950758975103163], "body": [0.4498631938346857, 0.4471911383764746, 0.45362609433544354, 0.45596251616433814, 0.45429554401125766, 0.4590202419565285, 0.4656537689988062, 0.46173551170018695, 0.4662522531755584, 0.43819517940500885, 0.44477600662394956, 0.4472261181371094, 0.4346004342151764, 0.45404611571057507, 0.4450109313816146, 0.45600304962692834, 0.432416085584878, 0.44407368057298036, 0.438073373136466, 0.44485688222566905, 0.44162767241215, 0.4425711531903049, 0.44383616251001706, 0.4391795771917787]};
+        const ofiAvgHour = {"hours": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], "ofi": [-0.016653375969888615, -0.01668880962234507, -0.013100755912474605, -0.009140606632574636, -0.016437352189243786, -0.01292827790317689, -0.010073553965436365, -0.011905739035356801, -0.01379085108253322, -0.010180132904693441, -0.012263781643290141, -0.012181819291195162, -0.014346959490125983, -0.011251309784573536, -0.009331941152902501, -0.008444659255313222, -0.01541514397479079, -0.008013742477774352, -0.010379214751803716, -0.010334442345245094, -0.009154906837804266, -0.007407447173541074, -0.003204470823432297, -0.013061894601500073]};
+        const anatomyAvgHour = {"hours": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], "body_ratio": [0.4498631938346857, 0.4471911383764746, 0.45362609433544354, 0.45596251616433814, 0.45429554401125766, 0.4590202419565285, 0.4656537689988062, 0.46173551170018695, 0.4662522531755584, 0.43819517940500885, 0.44477600662394956, 0.4472261181371094, 0.4346004342151764, 0.45404611571057507, 0.4450109313816146, 0.45600304962692834, 0.432416085584878, 0.44407368057298036, 0.438073373136466, 0.44485688222566905, 0.44162767241215, 0.4425711531903049, 0.44383616251001706, 0.4391795771917787], "bull_pct": [0.47600791704315654, 0.4925330235359924, 0.5043199518093026, 0.514081945614376, 0.4842203935290179, 0.506950474092313, 0.5108775567506857, 0.48072096589559166, 0.5034182163761637, 0.5182699410354435, 0.4870481003909372, 0.5007719389187671, 0.469561761593123, 0.48461608242078663, 0.4769701289444697, 0.5016834056891077, 0.47100369338430637, 0.5458407309013154, 0.4836717855677229, 0.5078269509060671, 0.4965234670295255, 0.5282036329078381, 0.5089569969113803, 0.44855266852415815]};
+        const volProfile = {"ADAUSDT": {"price_levels": [0.28610800000000003, 0.307124, 0.32814, 0.349156, 0.370172, 0.391188, 0.412204, 0.43322, 0.45423600000000003, 0.475252, 0.49626800000000004, 0.5172840000000001, 0.5383, 0.5593159999999999, 0.5803320000000001, 0.601348, 0.6223639999999999, 0.6433800000000001, 0.664396, 0.685412, 0.7064280000000001, 0.727444, 0.74846, 0.769476, 0.790492, 0.811508, 0.832524, 0.85354, 0.874556, 0.895572, 0.916588, 0.937604, 0.95862, 0.979636, 1.000652, 1.021668, 1.042684, 1.0636999999999999, 1.084716, 1.1057320000000002, 1.126748, 1.147764, 1.16878, 1.189796, 1.210812, 1.2318280000000001, 1.252844, 1.27386, 1.294876, 1.315892], "volume": [155719572.9489038, 481484471.3288291, 2308246842.948098, 3877727799.901625, 2014574085.6977036, 2036485789.3029244, 1574709237.3734758, 2533466009.245345, 3445475852.062742, 2262183095.5103507, 1993248309.1574516, 1615432079.005468, 1480565244.628701, 1451180924.6736958, 3066398270.5858965, 2545273362.8234034, 2172815496.651948, 1412136456.6424038, 1131163000.6962168, 918733652.0857993, 845468776.6591693, 1971837081.774192, 1858356777.92067, 1332572285.9377775, 869938815.8047651, 446597461.80945307, 408488482.7945238, 395985194.77751106, 854119322.9492834, 893218960.9391254, 653393975.3814534, 568400096.3658746, 676313263.4696516, 878521834.0380417, 918833300.3223581, 756427604.2692544, 654610364.5778232, 1041312382.1171455, 1132589586.2004514, 790973321.2273023, 575442651.650954, 601933509.818642, 522707971.52632195, 762559295.6120269, 745299287.5449728, 323524435.06057703, 83190426.18112607, 168565002.67463845, 131031099.2871993, 24286169.436733995], "poc": 0.349156, "hvn_levels": [0.32814, 0.349156, 0.370172, 0.391188, 0.43322, 0.45423600000000003, 0.475252, 0.5803320000000001, 0.601348, 0.6223639999999999], "lvn_levels": [0.28610800000000003, 0.307124, 0.811508, 0.832524, 0.85354, 1.2318280000000001, 1.252844, 1.27386, 1.294876, 1.315892], "price_min": 0.2756, "price_max": 1.3264, "current_price": 0.8451}, "APTUSDT": {"price_levels": [4.470464, 4.7713920000000005, 5.0723199999999995, 5.373248, 5.674176, 5.975104, 6.276032000000001, 6.57696, 6.8778880000000004, 7.178815999999999, 7.479744, 7.780672, 8.0816, 8.382528, 8.683456, 8.984383999999999, 9.285312000000001, 9.58624, 9.887167999999999, 10.188095999999998, 10.489024, 10.789952, 11.090879999999999, 11.391808000000001, 11.692736, 11.993663999999999, 12.294591999999998, 12.59552, 12.896448, 13.197375999999998, 13.498304, 13.799232, 14.100159999999999, 14.401088, 14.702016, 15.002944, 15.303871999999998, 15.6048, 15.905728, 16.206656, 16.507584, 16.808512, 17.10944, 17.410368, 17.711295999999997, 18.012223999999996, 18.313152, 18.61408, 18.915008, 19.215936], "volume": [4647918.47047101, 4983903.825193813, 8001505.554679246, 9850049.055493293, 22229381.196346786, 40267771.01408688, 39679037.6210589, 30522288.68533953, 54495877.76684386, 35546435.79958462, 17480077.59841845, 32835271.319898263, 63179600.97013941, 73816077.15421747, 77545491.85279207, 141525185.1372897, 128416310.3042871, 83915943.36572948, 91138075.68118756, 79748522.98289539, 34924513.99012562, 29410559.928369377, 25534117.968715005, 32770355.578180507, 65132971.869247064, 77580203.7342152, 63876477.80169447, 50172193.83463246, 44389385.61966482, 52555010.955534644, 48881676.15470928, 42207859.17927553, 44380151.15572466, 34365486.53610991, 20864709.968492366, 20845221.773640957, 12057053.679139288, 8706845.031748042, 11726118.83789096, 11893147.441258902, 9127655.97423072, 6699842.532618655, 8151324.430356907, 5656734.151056485, 5296496.57581898, 5580260.59451206, 3625750.4740968337, 3738136.3033172493, 1928458.1240132954, 456169.2756568423], "poc": 8.984383999999999, "hvn_levels": [8.382528, 8.683456, 8.984383999999999, 9.285312000000001, 9.58624, 9.887167999999999, 10.188095999999998, 11.692736, 11.993663999999999, 12.294591999999998], "lvn_levels": [4.470464, 4.7713920000000005, 16.808512, 17.410368, 17.711295999999997, 18.012223999999996, 18.313152, 18.61408, 18.915008, 19.215936], "price_min": 4.32, "price_max": 19.3664, "current_price": 8.71}, "ARBUSDT": {"price_levels": [0.44866300000000003, 0.48858900000000005, 0.5285150000000001, 0.568441, 0.6083670000000001, 0.648293, 0.6882189999999999, 0.728145, 0.768071, 0.8079970000000001, 0.847923, 0.887849, 0.927775, 0.9677009999999999, 1.0076269999999998, 1.047553, 1.087479, 1.127405, 1.167331, 1.2072569999999998, 1.247183, 1.287109, 1.327035, 1.3669609999999999, 1.406887, 1.4468130000000001, 1.486739, 1.526665, 1.5665909999999998, 1.606517, 1.646443, 1.686369, 1.726295, 1.7662209999999998, 1.806147, 1.846073, 1.885999, 1.9259249999999999, 1.9658509999999998, 2.005777, 2.0457029999999996, 2.085629, 2.1255549999999994, 2.1654809999999998, 2.205407, 2.2453329999999996, 2.285259, 2.325185, 2.3651109999999997, 2.405037], "volume": [150907072.2363395, 934329822.1073177, 2040549529.9869883, 2068197984.2527528, 1698830952.7880826, 988794567.6733739, 1022064470.6105522, 867127020.352628, 1329351526.2797902, 1128245054.6077406, 551040614.7394013, 538452029.15844, 1024403182.397677, 1166926039.5372639, 1128564507.1007998, 939036597.921708, 792824406.3723317, 1217326382.4187558, 960575302.3154477, 729841059.595022, 209834509.21357295, 16613758.371707734, 8892039.109826636, 21673854.7396928, 63032643.83527417, 239925626.93738237, 271666033.54413694, 127612687.9325141, 289450786.5024754, 372645456.8729839, 581643164.567052, 614680534.0420767, 666123850.7288594, 577722618.2924156, 554844939.0082957, 574378582.3371835, 656500349.6159631, 601036753.1490175, 593136894.2682232, 616778927.3905436, 545916299.6886481, 566609147.8673166, 403187026.4526719, 312942234.96983993, 164259687.5646181, 111619594.55228165, 68881241.57472974, 74984270.20800959, 44390754.94754347, 11793053.762729496], "poc": 0.568441, "hvn_levels": [0.5285150000000001, 0.568441, 0.6083670000000001, 0.6882189999999999, 0.768071, 0.8079970000000001, 0.927775, 0.9677009999999999, 1.0076269999999998, 1.127405], "lvn_levels": [1.287109, 1.327035, 1.3669609999999999, 1.406887, 1.526665, 2.2453329999999996, 2.285259, 2.325185, 2.3651109999999997, 2.405037], "price_min": 0.4287, "price_max": 2.425, "current_price": 0.7222}, "ATOMUSDT": {"price_levels": [3.7247000000000003, 3.9440999999999997, 4.1635, 4.3829, 4.6023, 4.8217, 5.0411, 5.2605, 5.479900000000001, 5.699300000000001, 5.9187, 6.1381, 6.3575, 6.5769, 6.7963000000000005, 7.015700000000001, 7.235100000000001, 7.4545, 7.673900000000001, 7.8933, 8.1127, 8.3321, 8.5515, 8.770900000000001, 8.990300000000001, 9.209700000000002, 9.429100000000002, 9.6485, 9.8679, 10.0873, 10.3067, 10.5261, 10.7455, 10.9649, 11.1843, 11.4037, 11.6231, 11.842500000000001, 12.061900000000001, 12.281300000000002, 12.5007, 12.7201, 12.9395, 13.158900000000001, 13.378300000000001, 13.597700000000001, 13.8171, 14.0365, 14.2559, 14.4753], "volume": [7792461.410471974, 19088409.395074412, 31272337.89349061, 46020545.69910419, 55298862.074064285, 42495129.608577184, 44756460.80290155, 29760524.482542545, 13088111.551058816, 10087454.779124225, 14407702.219549792, 28330733.238282986, 35670192.36910606, 28490204.402064867, 21249942.59109448, 16089623.826459086, 7890589.959409232, 11429691.54476863, 15768202.431736514, 26881042.55411009, 36654893.038304254, 47086569.7245054, 45476735.47210771, 44344662.71987731, 35315906.6878595, 35251888.29672253, 20846595.620885253, 29676991.92118146, 37598261.94118612, 38014203.057087906, 34703104.21550158, 17786949.306135554, 15108411.255532568, 18265598.81090404, 19902106.48330968, 17981994.98689293, 11879596.167515304, 13441633.18254318, 11784906.532380369, 18081644.786241632, 15835909.966774374, 11415820.046134535, 3929785.6271006446, 5708679.836965574, 10417957.076063784, 11942383.542139055, 9764428.143871922, 3045378.76801215, 1237947.1321164635, 511903.7481558419], "poc": 4.6023, "hvn_levels": [4.3829, 4.6023, 4.8217, 5.0411, 8.1127, 8.3321, 8.5515, 8.770900000000001, 9.8679, 10.0873], "lvn_levels": [3.7247000000000003, 5.699300000000001, 7.235100000000001, 12.9395, 13.158900000000001, 13.378300000000001, 13.8171, 14.0365, 14.2559, 14.4753], "price_min": 3.615, "price_max": 14.585, "current_price": 6.19}, "AVAXUSDT": {"price_levels": [17.771, 18.732999999999997, 19.695, 20.656999999999996, 21.619, 22.581, 23.543, 24.505000000000003, 25.467, 26.429000000000002, 27.391, 28.353, 29.314999999999998, 30.277, 31.239, 32.201, 33.163000000000004, 34.125, 35.087, 36.049, 37.011, 37.973, 38.935, 39.897, 40.859, 41.821, 42.783, 43.745000000000005, 44.707, 45.669000000000004, 46.631, 47.593, 48.555, 49.517, 50.479, 51.441, 52.403000000000006, 53.365, 54.327, 55.289, 56.251000000000005, 57.213, 58.175000000000004, 59.137, 60.099000000000004, 61.06100000000001, 62.023, 62.985, 63.947, 64.90899999999999], "volume": [2167536.388398019, 4604243.302689843, 4405562.79198049, 12728112.480394593, 17900968.566360418, 12385167.96509207, 23612629.188705675, 21781995.760749128, 35399107.18074704, 42533442.160898246, 43169606.21128094, 34977615.68790768, 20132585.22659033, 16577406.99599982, 15005323.903423186, 31581723.525393736, 29989073.66462551, 44015857.57802325, 55294326.23940459, 59308567.712261066, 47150412.738950625, 28021544.54530312, 34937813.208411045, 29314181.82990669, 25284278.96380511, 29670238.536559213, 38744174.86390202, 22270198.340572443, 12534563.555326331, 10799811.489416959, 13935907.805067647, 13862680.943790445, 13138538.894294834, 11732991.796332369, 13799798.653509572, 18550354.75171794, 18351810.27193219, 23675734.366141986, 22293553.72656114, 14595760.654874286, 12612168.584054675, 10085170.363249335, 8737011.614584047, 4051764.30306034, 4662465.840157447, 4262927.9979709275, 2786786.25396928, 2220975.0497290646, 1430094.2248705304, 351208.9510529705], "poc": 36.049, "hvn_levels": [25.467, 26.429000000000002, 27.391, 28.353, 34.125, 35.087, 36.049, 37.011, 38.935, 42.783], "lvn_levels": [17.771, 18.732999999999997, 19.695, 59.137, 60.099000000000004, 61.06100000000001, 62.023, 62.985, 63.947, 64.90899999999999], "price_min": 17.29, "price_max": 65.39, "current_price": 35.71}, "BCHUSDT": {"price_levels": [216.382, 226.546, 236.71, 246.87400000000002, 257.038, 267.202, 277.366, 287.53, 297.694, 307.858, 318.02200000000005, 328.18600000000004, 338.35, 348.514, 358.678, 368.842, 379.006, 389.16999999999996, 399.334, 409.49800000000005, 419.66200000000003, 429.826, 439.99, 450.154, 460.318, 470.48199999999997, 480.646, 490.81, 500.974, 511.13800000000003, 521.302, 531.466, 541.63, 551.794, 561.958, 572.122, 582.286, 592.4499999999999, 602.614, 612.778, 622.942, 633.106, 643.27, 653.434, 663.5980000000001, 673.7620000000001, 683.926, 694.09, 704.254, 714.418], "volume": [18347.295920418426, 207407.46808752517, 1405447.3025265282, 676371.7092997737, 685891.2628974692, 1328571.6076256037, 1074664.3124501011, 483489.58137348475, 691504.698860219, 816476.8563617071, 950447.749058895, 730845.4703360389, 944112.0318500821, 1139263.5655434942, 945254.181651965, 1155635.1154474856, 1099081.071444009, 933522.6427767543, 837548.7979313887, 912677.066973133, 910370.8890288896, 1616988.1237348088, 1852338.1618308167, 1695270.141571322, 1368971.2711875779, 1341642.2276900143, 1388030.8647409007, 1414731.7856707964, 1035403.150478086, 1066547.0727465553, 952967.2051790111, 886045.074749349, 780830.5120383503, 354616.854356823, 291239.42123768013, 442020.7901654408, 331691.5711629808, 387201.4236879462, 573118.6888268867, 728713.6605837366, 472713.9023506157, 388770.43094362156, 279871.05880457326, 167656.36361499442, 304718.10014237056, 378644.4447729319, 635436.1503987331, 538036.2435780541, 281533.3476452456, 88682.3156648132], "poc": 439.99, "hvn_levels": [236.71, 267.202, 368.842, 429.826, 439.99, 450.154, 460.318, 470.48199999999997, 480.646, 490.81], "lvn_levels": [216.382, 226.546, 551.794, 561.958, 582.286, 643.27, 653.434, 663.5980000000001, 704.254, 714.418], "price_min": 211.3, "price_max": 719.5, "current_price": 434.5}, "BNBUSDT": {"price_levels": [292.5636, 302.69079999999997, 312.818, 322.9452, 333.0724, 343.19960000000003, 353.3268, 363.454, 373.5812, 383.7084, 393.8356, 403.9628, 414.09, 424.2172, 434.3444, 444.4716, 454.5988, 464.726, 474.8532, 484.9804, 495.1076, 505.2348, 515.3620000000001, 525.4892, 535.6164, 545.7436, 555.8707999999999, 565.998, 576.1252, 586.2524000000001, 596.3796, 606.5068, 616.634, 626.7611999999999, 636.8884, 647.0156, 657.1428000000001, 667.27, 677.3972, 687.5244, 697.6515999999999, 707.7788, 717.906, 728.0332000000001, 738.1604, 748.2876, 758.4148, 768.5419999999999, 778.6692, 788.7964], "volume": [3665054.8686088845, 10249785.725399936, 11961875.417458972, 5699389.740359514, 867508.3549309403, 461019.0795656852, 3844534.2920420873, 2035649.9316339074, 2102199.5339519, 2850686.7131561795, 1813393.3035718682, 3094328.66888882, 4256468.968288298, 2227673.0839261087, 865190.2121196678, 800572.9881998902, 565043.5436239494, 1096926.1979319039, 1638107.6496764917, 2483578.1003619093, 1292981.2180187437, 2743512.5934346616, 4329364.58707649, 5907994.708456142, 5667400.293568072, 5698425.443796243, 7917578.495450007, 8294843.528725738, 12670661.424373865, 13869400.582320634, 12234069.092495004, 10362728.160861185, 7607114.414822689, 5655062.014373541, 3620007.2376000197, 3406466.251214908, 3731196.453713446, 2289129.338925321, 1756015.7001842833, 2106771.042463184, 2597116.838667724, 2839132.8281767075, 2929691.282403633, 1892983.3143777822, 1142991.2862535703, 643652.9371488937, 576163.7285805839, 396162.57999904593, 314958.9271540904, 127883.37636691271], "poc": 586.2524000000001, "hvn_levels": [302.69079999999997, 312.818, 525.4892, 555.8707999999999, 565.998, 576.1252, 586.2524000000001, 596.3796, 606.5068, 616.634], "lvn_levels": [333.0724, 343.19960000000003, 434.3444, 444.4716, 454.5988, 748.2876, 758.4148, 768.5419999999999, 778.6692, 788.7964], "price_min": 287.5, "price_max": 793.86, "current_price": 702.3}, "BTCUSDT": {"price_levels": [39252.979999999996, 40648.94, 42044.899999999994, 43440.86, 44836.82, 46232.78, 47628.740000000005, 49024.7, 50420.66, 51816.619999999995, 53212.58, 54608.54, 56004.5, 57400.46, 58796.42, 60192.380000000005, 61588.34, 62984.3, 64380.26, 65776.22, 67172.18, 68568.14, 69964.1, 71360.06, 72756.02, 74151.98, 75547.94, 76943.9, 78339.86, 79735.82, 81131.78, 82527.74, 83923.7, 85319.66, 86715.62, 88111.58, 89507.54000000001, 90903.5, 92299.46, 93695.42, 95091.38, 96487.34, 97883.3, 99279.26000000001, 100675.22, 102071.18000000001, 103467.14, 104863.1, 106259.06, 107655.02], "volume": [99712.73073146622, 152257.10003542452, 361085.4613445222, 514824.6325016014, 232146.87925427986, 242342.24533191975, 160008.5704033506, 82323.69052842628, 134552.33730666983, 392501.23998852505, 92943.85983830605, 182126.04851795084, 253536.16621962233, 485275.37005116383, 509669.3823720859, 553848.8445904703, 765982.9090571076, 920366.6204259286, 820965.8121481179, 773138.1256783998, 1053418.6038638896, 779491.6391921766, 595666.0414067383, 388524.5958290748, 180176.30644801506, 70304.4561525341, 72236.31720954008, 45629.85454193701, 9810.12393260868, 37216.160810358735, 28284.773842533352, 14151.967551014153, 11691.036100682188, 18306.682811005463, 59702.22478271843, 99061.22682850911, 97342.59120000721, 122176.15873809687, 132214.24687407524, 148748.6444169186, 220212.34765927185, 262485.16745026526, 274533.1467430313, 144506.44237639988, 114672.18512690488, 84629.83430941601, 48580.73534941428, 34807.260164489155, 36097.01207315624, 16826.35925087781], "poc": 67172.18, "hvn_levels": [43440.86, 58796.42, 60192.380000000005, 61588.34, 62984.3, 64380.26, 65776.22, 67172.18, 68568.14, 69964.1], "lvn_levels": [76943.9, 78339.86, 79735.82, 81131.78, 82527.74, 83923.7, 85319.66, 104863.1, 106259.06, 107655.02], "price_min": 38555.0, "price_max": 108353.0, "current_price": 93576.0}, "DOGEUSDT": {"price_levels": [0.0782222, 0.0864266, 0.09463099999999999, 0.1028354, 0.1110398, 0.1192442, 0.1274486, 0.135653, 0.1438574, 0.1520618, 0.1602662, 0.16847059999999997, 0.17667499999999997, 0.18487939999999997, 0.19308379999999997, 0.20128819999999997, 0.20949259999999997, 0.21769699999999997, 0.22590139999999997, 0.23410579999999998, 0.24231019999999998, 0.2505146, 0.258719, 0.2669234, 0.2751278, 0.2833322, 0.2915366, 0.299741, 0.3079454, 0.3161498, 0.3243542, 0.3325586, 0.340763, 0.3489674, 0.3571718, 0.3653762, 0.3735806, 0.381785, 0.3899894, 0.3981938, 0.4063982, 0.4146026, 0.422807, 0.4310114, 0.4392158, 0.4474202, 0.4556246, 0.46382899999999994, 0.47203339999999994, 0.48023779999999994], "volume": [25320750007.777054, 26360765282.679737, 16687030358.331657, 28496455883.418922, 26792551025.452847, 22012269817.61382, 35342556600.968025, 30775448569.451904, 40434859186.78972, 50366377530.84535, 51901797870.192085, 43482233429.525764, 27944416426.605835, 24124172387.401604, 17765343345.11111, 18653218491.073505, 9941688237.510525, 7131493238.875688, 2841310984.5088286, 749155310.7829947, 1414620745.5517108, 821820707.4822724, 789015450.7108185, 1982284502.796615, 2901970494.2087865, 3902972016.2755322, 4134710188.9938755, 2300833694.3205876, 4428196067.996767, 10167814592.223894, 7614442335.117945, 3435202444.985803, 2191110219.094878, 3092817826.3083377, 6444663556.042205, 10229568280.411459, 13016062014.55433, 15466863581.305082, 19577262791.06714, 17255677510.2058, 19077487041.12769, 16081100461.984385, 12528374430.319613, 11002380840.255777, 7708145892.706546, 5226852517.802067, 4591143660.299175, 4115562607.055992, 1621860889.1588366, 588653782.3191123], "poc": 0.1602662, "hvn_levels": [0.0864266, 0.1028354, 0.1110398, 0.1274486, 0.135653, 0.1438574, 0.1520618, 0.1602662, 0.16847059999999997, 0.17667499999999997], "lvn_levels": [0.22590139999999997, 0.23410579999999998, 0.24231019999999998, 0.2505146, 0.258719, 0.2669234, 0.299741, 0.340763, 0.47203339999999994, 0.48023779999999994], "price_min": 0.07412, "price_max": 0.48434, "current_price": 0.316}, "DOTUSDT": {"price_levels": [3.6729899999999995, 3.8389699999999998, 4.00495, 4.17093, 4.33691, 4.50289, 4.66887, 4.834849999999999, 5.00083, 5.16681, 5.332789999999999, 5.4987699999999995, 5.66475, 5.83073, 5.99671, 6.16269, 6.32867, 6.49465, 6.660629999999999, 6.82661, 6.99259, 7.158569999999999, 7.3245499999999995, 7.49053, 7.656509999999999, 7.82249, 7.9884699999999995, 8.154449999999999, 8.32043, 8.48641, 8.65239, 8.81837, 8.98435, 9.15033, 9.31631, 9.482289999999999, 9.64827, 9.81425, 9.980229999999999, 10.14621, 10.31219, 10.478169999999999, 10.64415, 10.81013, 10.976109999999998, 11.14209, 11.308069999999999, 11.474049999999998, 11.64003, 11.80601], "volume": [4680343.116281887, 21543054.304539356, 54728758.54860455, 104586583.40150166, 78467309.48449549, 45854442.563331425, 30497720.185361017, 35231554.615484156, 37813350.02773915, 46946830.6650519, 46577488.2037161, 32783439.045248087, 59607818.80676026, 68675463.11740912, 45787691.2205922, 59319693.6177076, 69643795.69482496, 67594409.9483896, 79304017.55427317, 90841669.05351786, 108423637.19345526, 106493437.81839871, 73336149.64095496, 76724531.66246727, 71962756.41795677, 51942391.56285144, 37513207.70222055, 50683670.63885727, 66975433.36981772, 80192039.14421971, 79933394.62803212, 67838160.48662, 79995784.41226538, 69975292.33112249, 44541004.44200883, 44548402.44043853, 38731390.04999181, 43290720.03592676, 40493571.50373778, 34476695.66868611, 40070806.15753503, 52223896.506102145, 44165272.958906546, 33269395.02415877, 23108229.804772276, 17409144.025156196, 10198286.683528326, 7003374.328204322, 4267356.50932161, 1513660.8974558222], "poc": 6.99259, "hvn_levels": [4.17093, 4.33691, 6.660629999999999, 6.82661, 6.99259, 7.158569999999999, 7.49053, 8.48641, 8.65239, 8.98435], "lvn_levels": [3.6729899999999995, 3.8389699999999998, 4.66887, 5.4987699999999995, 10.976109999999998, 11.14209, 11.308069999999999, 11.474049999999998, 11.64003, 11.80601], "price_min": 3.59, "price_max": 11.889, "current_price": 6.643}, "ETHUSDT": {"price_levels": [2120.078, 2160.234, 2200.39, 2240.546, 2280.702, 2320.858, 2361.014, 2401.17, 2441.326, 2481.482, 2521.638, 2561.794, 2601.9500000000003, 2642.106, 2682.262, 2722.418, 2762.574, 2802.73, 2842.886, 2883.042, 2923.198, 2963.3540000000003, 3003.51, 3043.666, 3083.822, 3123.978, 3164.134, 3204.2900000000004, 3244.4460000000004, 3284.6020000000003, 3324.7580000000003, 3364.914, 3405.07, 3445.226, 3485.382, 3525.538, 3565.694, 3605.8500000000004, 3646.0060000000003, 3686.1620000000003, 3726.318, 3766.474, 3806.63, 3846.7860000000005, 3886.9420000000005, 3927.0980000000004, 3967.2540000000004, 4007.4100000000003, 4047.5660000000003, 4087.722], "volume": [71762.01717465388, 212759.74310457634, 1483837.8043472886, 2725827.92666612, 3288086.4569650255, 3601855.9910466895, 3532102.972495964, 2814999.1192938574, 4276828.4056930775, 4111066.3764418834, 4700844.325237893, 3289819.666915412, 4463925.601697717, 4969635.629246595, 2577536.27168291, 1230887.3756503926, 1215097.3461859042, 1078216.2467299385, 884528.242883581, 1673333.3708932318, 3309329.384843776, 2884473.5957545466, 3003792.0699248686, 3033658.754328732, 4112322.2509464216, 4490477.746500955, 4163406.0509784515, 3215200.7083257944, 3282874.1587619674, 3809509.024281192, 5207889.088082923, 4652357.298479375, 4908721.785686603, 4316966.882684459, 4921144.636689362, 4189720.11699783, 3508256.5361577226, 3339443.0395348263, 2860140.9323529927, 3313809.8821032085, 2534034.0563238687, 2769790.4950530934, 3062967.0919103567, 2810521.6843883498, 2497490.268926167, 2256763.073885409, 1461450.0651521827, 1351249.7940065335, 874206.2792964207, 144404.32708888775], "poc": 3324.7580000000003, "hvn_levels": [2441.326, 2521.638, 2601.9500000000003, 2642.106, 3123.978, 3324.7580000000003, 3364.914, 3405.07, 3445.226, 3485.382], "lvn_levels": [2120.078, 2160.234, 2722.418, 2762.574, 2802.73, 2842.886, 3967.2540000000004, 4007.4100000000003, 4047.5660000000003, 4087.722], "price_min": 2100.0, "price_max": 4107.8, "current_price": 3337.78}, "FILUSDT": {"price_levels": [2.9558400000000002, 3.13552, 3.3152, 3.49488, 3.67456, 3.85424, 4.03392, 4.2136, 4.393280000000001, 4.57296, 4.75264, 4.93232, 5.112, 5.29168, 5.471360000000001, 5.65104, 5.83072, 6.010400000000001, 6.19008, 6.36976, 6.549440000000001, 6.72912, 6.9088, 7.08848, 7.26816, 7.44784, 7.6275200000000005, 7.807200000000001, 7.98688, 8.16656, 8.346240000000002, 8.52592, 8.7056, 8.885280000000002, 9.06496, 9.24464, 9.424320000000002, 9.604, 9.78368, 9.963360000000002, 10.14304, 10.32272, 10.502400000000002, 10.68208, 10.86176, 11.04144, 11.221119999999999, 11.4008, 11.58048, 11.760159999999999], "volume": [6793888.8836115915, 17206180.791130073, 56896658.826745905, 118655977.04444228, 173289701.99080375, 110515189.19576578, 81724520.96018618, 112751725.06966875, 128143761.51507017, 96168460.57285656, 47745189.923190266, 87010238.93132529, 89510549.12524603, 114474788.36023057, 137343762.04854292, 152101570.18702763, 197508993.74286622, 188042762.7449343, 150942484.93046534, 93711169.61804482, 77685942.25319098, 57620164.37786971, 48329222.09546273, 55010190.61868104, 65711235.043410026, 63435040.6461578, 69238010.7480671, 72122236.158045, 87739675.316488, 90389361.05667406, 57314331.81925949, 54754410.53380468, 62208866.74580503, 41580475.85308505, 41050583.816605434, 45679235.65829021, 40291430.185411245, 39415959.68415257, 36979613.229310565, 31606563.862685967, 39199396.621875204, 27008270.968584687, 28311854.118523832, 20456604.041007843, 11187249.951970618, 16264817.385854106, 13452631.527419722, 5861460.039159177, 9460805.20754977, 4486678.233443603], "poc": 5.83072, "hvn_levels": [3.49488, 3.67456, 4.2136, 4.393280000000001, 5.29168, 5.471360000000001, 5.65104, 5.83072, 6.010400000000001, 6.19008], "lvn_levels": [2.9558400000000002, 3.13552, 10.32272, 10.68208, 10.86176, 11.04144, 11.221119999999999, 11.4008, 11.58048, 11.760159999999999], "price_min": 2.866, "price_max": 11.85, "current_price": 4.953}, "INJUSDT": {"price_levels": [13.9049, 14.694700000000001, 15.4845, 16.2743, 17.0641, 17.8539, 18.643700000000003, 19.433500000000002, 20.223300000000002, 21.0131, 21.8029, 22.5927, 23.3825, 24.1723, 24.9621, 25.7519, 26.5417, 27.3315, 28.121299999999998, 28.9111, 29.700900000000004, 30.490700000000004, 31.280500000000004, 32.0703, 32.8601, 33.6499, 34.4397, 35.2295, 36.0193, 36.8091, 37.5989, 38.3887, 39.1785, 39.9683, 40.7581, 41.5479, 42.3377, 43.127500000000005, 43.917300000000004, 44.707100000000004, 45.496900000000004, 46.2867, 47.0765, 47.8663, 48.6561, 49.4459, 50.2357, 51.0255, 51.8153, 52.6051], "volume": [872184.9378397252, 1619276.0512387666, 3266816.670724947, 7187904.96929783, 8517852.175016603, 11037764.744903317, 16178986.575616146, 17717711.001380473, 22600098.867208894, 26948834.366686635, 21118938.02675156, 18065909.90981896, 22415578.360992108, 19692532.381306916, 24589240.778435685, 24177747.30000121, 18369977.534304347, 14259781.038282976, 17785133.167810727, 14904390.574420445, 10400584.150776062, 8249531.114542442, 7158777.888643882, 9509617.096576864, 10784193.146978676, 14638046.861925771, 18634387.86997082, 18235801.97655194, 14472056.263795743, 16206177.242483143, 14226301.486264532, 15169660.938323302, 14312306.116374087, 11270311.956260901, 11465717.302360121, 9059991.461226702, 7981631.870144987, 6740139.902685892, 4858888.090821151, 3022626.6025003423, 1197851.7255140238, 1126017.1665967915, 1094478.0749628476, 2428376.239534738, 2796848.5869366745, 1977271.0292880174, 1603724.75772755, 1163011.5503657947, 571624.910001758, 253532.44382611458], "poc": 21.0131, "hvn_levels": [20.223300000000002, 21.0131, 21.8029, 23.3825, 24.1723, 24.9621, 25.7519, 26.5417, 34.4397, 35.2295], "lvn_levels": [13.9049, 14.694700000000001, 45.496900000000004, 46.2867, 47.0765, 49.4459, 50.2357, 51.0255, 51.8153, 52.6051], "price_min": 13.51, "price_max": 53.0, "current_price": 19.62}, "LINKUSDT": {"price_levels": [8.3086, 8.7658, 9.222999999999999, 9.6802, 10.1374, 10.5946, 11.0518, 11.509, 11.9662, 12.4234, 12.880600000000001, 13.337800000000001, 13.795, 14.2522, 14.709399999999999, 15.166599999999999, 15.6238, 16.081, 16.5382, 16.9954, 17.4526, 17.9098, 18.366999999999997, 18.824199999999998, 19.281399999999998, 19.738599999999998, 20.1958, 20.653, 21.1102, 21.5674, 22.0246, 22.4818, 22.939, 23.3962, 23.8534, 24.3106, 24.7678, 25.225, 25.6822, 26.139400000000002, 26.596600000000002, 27.053800000000003, 27.511000000000003, 27.968200000000003, 28.4254, 28.882599999999996, 29.339799999999997, 29.796999999999997, 30.254199999999997, 30.711399999999998], "volume": [3175611.205444026, 3984795.9985942477, 5946666.985742664, 7957211.387833169, 26133167.920372933, 44136304.11130227, 49252280.124342665, 47830914.623223856, 31230715.125676736, 29447269.866407983, 44290325.652115345, 72040163.42229521, 91452497.07804202, 106600353.32639182, 75532858.0804233, 69837582.91577001, 57837603.365849584, 34765630.43452349, 33990152.17214882, 37882539.48249661, 50050103.44973442, 79229190.84054723, 88168328.78089945, 56121706.19321162, 50288079.56476755, 53802371.868256204, 65066517.341995105, 41892808.70207793, 31163773.42983975, 24115989.48279332, 15645723.877555404, 18890937.49558809, 20576126.756950796, 16259382.422802312, 21474360.282837577, 25308987.551850293, 28423427.67131583, 17357226.809043404, 11404402.340297079, 8810091.349404804, 7194760.455090561, 7020529.066750009, 6591734.643374011, 11478614.55925719, 12288967.332808595, 13101422.821269061, 11873115.733044054, 8649631.743691102, 6146179.566774995, 1772417.5471755587], "poc": 14.2522, "hvn_levels": [13.337800000000001, 13.795, 14.2522, 14.709399999999999, 15.166599999999999, 15.6238, 17.9098, 18.366999999999997, 18.824199999999998, 20.1958], "lvn_levels": [8.3086, 8.7658, 9.222999999999999, 9.6802, 26.596600000000002, 27.053800000000003, 27.511000000000003, 29.796999999999997, 30.254199999999997, 30.711399999999998], "price_min": 8.08, "price_max": 30.94, "current_price": 20.01}, "LTCUSDT": {"price_levels": [50.7726, 52.7178, 54.663, 56.6082, 58.553399999999996, 60.498599999999996, 62.443799999999996, 64.389, 66.3342, 68.2794, 70.2246, 72.1698, 74.115, 76.0602, 78.0054, 79.9506, 81.89580000000001, 83.84100000000001, 85.78620000000001, 87.73140000000001, 89.67660000000001, 91.62180000000001, 93.56700000000001, 95.5122, 97.4574, 99.4026, 101.3478, 103.293, 105.2382, 107.1834, 109.1286, 111.0738, 113.019, 114.9642, 116.9094, 118.8546, 120.7998, 122.745, 124.6902, 126.6354, 128.5806, 130.5258, 132.471, 134.4162, 136.3614, 138.3066, 140.2518, 142.197, 144.1422, 146.0874], "volume": [218935.64152389904, 545551.6508450139, 673484.895797847, 1122040.588318942, 1670680.709873991, 3651653.1734049357, 5848570.271954246, 10944560.058227116, 12955631.03085712, 12455926.588530611, 17304199.476795774, 13073395.382305967, 9815885.313374495, 7179735.023985079, 8722826.187292375, 9088974.141463675, 11195868.653951155, 14042723.412608938, 12445626.358392274, 9399119.75234561, 11388505.814935073, 5728456.388152331, 4934303.6164648505, 7972340.730005543, 8504696.707792692, 7668401.970513378, 8416710.176181864, 7706063.934924317, 5618469.025945345, 3446314.2242197962, 3300337.395999164, 1798771.0811149979, 949477.2301239772, 984546.9278939714, 2147886.087372847, 2654853.450021025, 2866195.2809045096, 2692431.1592119136, 1471406.686292543, 1746344.172661777, 1808051.9282395337, 1856362.6816642033, 2042495.0012702087, 1426753.1000716405, 1299785.3881589076, 689713.1182761963, 240561.57509072317, 412726.92550764006, 302926.202568891, 105253.76657106914], "poc": 70.2246, "hvn_levels": [64.389, 66.3342, 68.2794, 70.2246, 72.1698, 74.115, 81.89580000000001, 83.84100000000001, 85.78620000000001, 89.67660000000001], "lvn_levels": [50.7726, 52.7178, 54.663, 113.019, 114.9642, 138.3066, 140.2518, 142.197, 144.1422, 146.0874], "price_min": 49.8, "price_max": 147.06, "current_price": 103.28}, "MATICUSDT": {"price_levels": [0.343758, 0.36287400000000003, 0.38199, 0.401106, 0.420222, 0.439338, 0.45845400000000003, 0.47757, 0.496686, 0.5158020000000001, 0.534918, 0.5540339999999999, 0.57315, 0.592266, 0.6113820000000001, 0.630498, 0.649614, 0.66873, 0.687846, 0.7069620000000001, 0.726078, 0.745194, 0.76431, 0.783426, 0.8025420000000001, 0.821658, 0.840774, 0.85989, 0.8790060000000001, 0.8981220000000001, 0.917238, 0.936354, 0.95547, 0.9745860000000001, 0.9937020000000001, 1.012818, 1.0319340000000001, 1.05105, 1.070166, 1.089282, 1.108398, 1.1275140000000001, 1.14663, 1.165746, 1.184862, 1.203978, 1.2230940000000001, 1.24221, 1.261326, 1.280442], "volume": [60279096.43384168, 298183862.0696044, 374983531.9587456, 491355222.83486295, 619460036.705287, 338637153.67596173, 287875251.5230827, 257806967.87263435, 442215290.86465627, 640068700.6079787, 796607257.2189395, 513349448.18460494, 374757985.9519204, 112490825.3714641, 182335652.06647605, 201245045.49885428, 371262929.65893286, 494025221.89447695, 670926719.5731671, 871284224.8984356, 1022475696.9388254, 653073260.1143525, 393799834.95215404, 489043895.1013097, 549951142.7910669, 386487579.2962383, 561143570.2767256, 487091223.337201, 461017468.7365096, 408158320.0902047, 399365447.05003583, 483500553.7303576, 341762382.39439875, 591543519.364558, 799175420.5945127, 563561726.1656122, 433578355.6152416, 486268554.39621407, 384005866.7548915, 307325863.75931126, 274591743.03213197, 411240511.21144706, 249246320.14526772, 151196832.2886352, 126823639.03343818, 192343811.0531456, 198728335.9860809, 94689219.12310006, 79656395.52283138, 53801880.280274026], "poc": 0.726078, "hvn_levels": [0.420222, 0.5158020000000001, 0.534918, 0.687846, 0.7069620000000001, 0.726078, 0.745194, 0.9745860000000001, 0.9937020000000001, 1.012818], "lvn_levels": [0.343758, 0.592266, 0.6113820000000001, 1.165746, 1.184862, 1.203978, 1.2230940000000001, 1.24221, 1.261326, 1.280442], "price_min": 0.3342, "price_max": 1.29, "current_price": 0.3794}, "NEARUSDT": {"price_levels": [2.5156, 2.6468, 2.7780000000000005, 2.9092000000000002, 3.0404, 3.1715999999999998, 3.3028000000000004, 3.434, 3.5652, 3.6963999999999997, 3.8276000000000003, 3.9588, 4.09, 4.2212, 4.352399999999999, 4.4836, 4.6148, 4.746, 4.8772, 5.0084, 5.1396, 5.2707999999999995, 5.401999999999999, 5.5332, 5.6644, 5.7956, 5.9268, 6.058, 6.1892, 6.320399999999999, 6.451599999999999, 6.5828, 6.7139999999999995, 6.845199999999999, 6.9764, 7.1076, 7.2387999999999995, 7.369999999999999, 7.5012, 7.6324, 7.763599999999999, 7.894799999999999, 8.026, 8.1572, 8.2884, 8.419599999999999, 8.550799999999999, 8.681999999999999, 8.813199999999998, 8.944399999999998], "volume": [12385278.373043895, 48942510.14250941, 61403627.920141295, 113017938.3659862, 91853144.82842883, 127887338.52438083, 164938582.1337097, 129321464.49379271, 130046884.01653904, 130984702.1420854, 118703081.84347543, 220134500.53218374, 170714945.59926826, 160299550.11816365, 129094719.91292675, 143741310.2483866, 120036967.28967305, 140092168.7513171, 134642294.33296877, 151052520.38228706, 190710640.07939833, 202795865.08166695, 220582576.285221, 184816056.8748961, 151281322.67463732, 101227085.27538802, 89290965.91350153, 119439905.38922563, 139884488.5913011, 99828996.69578634, 96688937.15616879, 124261269.18388234, 155077724.80691218, 187657202.41587183, 185472944.10997653, 159135781.32263294, 162862362.84552538, 145042794.3470535, 109164246.69301109, 98267573.36023833, 103686238.39425106, 100780601.3545514, 79365191.11354192, 55989573.51189135, 24376277.16381769, 11046601.126021715, 4593626.44720479, 4864221.990275616, 4121465.6928747874, 1969327.1520073493], "poc": 5.401999999999999, "hvn_levels": [3.3028000000000004, 3.9588, 4.09, 5.1396, 5.2707999999999995, 5.401999999999999, 5.5332, 6.845199999999999, 6.9764, 7.2387999999999995], "lvn_levels": [2.5156, 2.6468, 2.7780000000000005, 8.1572, 8.2884, 8.419599999999999, 8.550799999999999, 8.681999999999999, 8.813199999999998, 8.944399999999998], "price_min": 2.45, "price_max": 9.01, "current_price": 4.913}, "OPUSDT": {"price_levels": [1.09904, 1.17512, 1.2511999999999999, 1.32728, 1.4033600000000002, 1.4794399999999999, 1.55552, 1.6316000000000002, 1.7076799999999999, 1.78376, 1.8598400000000002, 1.9359199999999999, 2.012, 2.08808, 2.1641600000000003, 2.24024, 2.31632, 2.3924, 2.46848, 2.54456, 2.6206400000000003, 2.69672, 2.7728, 2.8488800000000003, 2.92496, 3.00104, 3.0771200000000003, 3.1532, 3.22928, 3.3053600000000003, 3.3814400000000004, 3.45752, 3.5336000000000003, 3.60968, 3.68576, 3.7618400000000003, 3.8379200000000004, 3.914, 3.9900800000000003, 4.06616, 4.14224, 4.21832, 4.2944, 4.370480000000001, 4.44656, 4.522640000000001, 4.59872, 4.6748, 4.75088, 4.826960000000001], "volume": [24715466.771308642, 36972415.138214625, 77856967.3499555, 206104174.11021346, 222783000.86796644, 197278847.42117357, 289916018.7612839, 358131776.7443934, 536606003.05004406, 452286717.14140636, 241579536.28070977, 169194037.73331714, 81154833.59828933, 191202431.2560678, 247529792.74779883, 256434054.4528107, 223475323.04971227, 232203795.2920723, 341350302.1481213, 411448386.76391506, 261813465.85253432, 185622210.57221708, 81059004.52561143, 96021777.69611558, 109399904.04756746, 129406290.40132135, 126167872.22947645, 132140731.73112705, 132466629.55949345, 104278077.46539152, 146408207.72023642, 151677065.75379443, 165930524.42342776, 141949023.1165278, 172322537.83950055, 184950547.67470524, 204670360.06140175, 162293560.12490317, 83751616.35167031, 49960622.908563025, 44247305.19592764, 33964266.41885274, 35503895.45019658, 57600632.04509488, 57279309.9311881, 67409402.74006268, 62690253.35418344, 26450998.636964895, 13161655.60750426, 2936501.2656648615], "poc": 1.7076799999999999, "hvn_levels": [1.55552, 1.6316000000000002, 1.7076799999999999, 1.78376, 1.8598400000000002, 2.1641600000000003, 2.24024, 2.46848, 2.54456, 2.6206400000000003], "lvn_levels": [1.09904, 1.17512, 4.06616, 4.14224, 4.21832, 4.2944, 4.44656, 4.6748, 4.75088, 4.826960000000001], "price_min": 1.061, "price_max": 4.865, "current_price": 1.753}, "SEIUSDT": {"price_levels": [0.212024, 0.23087200000000002, 0.24972, 0.26856800000000003, 0.287416, 0.306264, 0.32511199999999996, 0.34396000000000004, 0.362808, 0.381656, 0.40050399999999997, 0.419352, 0.43820000000000003, 0.457048, 0.475896, 0.49474399999999996, 0.5135919999999999, 0.53244, 0.551288, 0.570136, 0.5889840000000001, 0.607832, 0.62668, 0.645528, 0.664376, 0.6832239999999999, 0.702072, 0.72092, 0.739768, 0.758616, 0.777464, 0.796312, 0.81516, 0.834008, 0.8528560000000001, 0.871704, 0.890552, 0.9094, 0.928248, 0.947096, 0.965944, 0.984792, 1.0036399999999999, 1.022488, 1.041336, 1.060184, 1.079032, 1.09788, 1.1167280000000002, 1.135576], "volume": [126985829.84679846, 156141026.28705528, 291503342.0581916, 1106309666.6147997, 1333681032.208054, 969337308.8871231, 617964595.7527413, 1148165735.0286152, 1249832468.4459012, 963545730.874794, 1156291229.6538112, 1658379549.606153, 1926721244.860497, 1967643523.0477304, 1832385858.7799416, 1225633184.6879265, 1209934840.8604732, 1075544424.5214984, 818591397.6369381, 855716946.6091398, 676641706.690313, 1146846434.611993, 1140532249.6413882, 1406392225.9157612, 1458422137.9337208, 1464050466.4688601, 1132891169.696435, 1136231605.8953278, 892948607.746213, 503730369.43631047, 555519253.1749026, 716256799.3750244, 698008376.3198752, 707518023.8036764, 767408592.3255128, 784189680.8890822, 627432790.6028404, 534062692.2091331, 309565050.18361485, 231252624.16792575, 172231572.13040507, 90234574.63579185, 65936658.95924583, 37768023.03922406, 39079189.54944799, 31619502.8128599, 35932160.68363185, 41453769.20573531, 30767196.54353975, 17607043.38402014], "poc": 0.457048, "hvn_levels": [0.287416, 0.362808, 0.419352, 0.43820000000000003, 0.457048, 0.475896, 0.49474399999999996, 0.645528, 0.664376, 0.6832239999999999], "lvn_levels": [0.212024, 0.984792, 1.0036399999999999, 1.022488, 1.041336, 1.060184, 1.079032, 1.09788, 1.1167280000000002, 1.135576], "price_min": 0.2026, "price_max": 1.145, "current_price": 0.3967}, "SOLUSDT": {"price_levels": [80.85390000000001, 84.5617, 88.2695, 91.9773, 95.6851, 99.3929, 103.1007, 106.8085, 110.5163, 114.22409999999999, 117.9319, 121.6397, 125.3475, 129.0553, 132.7631, 136.47089999999997, 140.1787, 143.8865, 147.59429999999998, 151.3021, 155.00990000000002, 158.71769999999998, 162.4255, 166.13330000000002, 169.84109999999998, 173.5489, 177.2567, 180.9645, 184.6723, 188.38009999999997, 192.0879, 195.7957, 199.50349999999997, 203.2113, 206.91910000000001, 210.62689999999998, 214.3347, 218.0425, 221.75029999999998, 225.4581, 229.1659, 232.87369999999999, 236.5815, 240.28929999999997, 243.9971, 247.7049, 251.41269999999997, 255.1205, 258.8283, 262.5361], "volume": [5874457.40664696, 9396161.705417208, 17552490.624935362, 27310076.61049769, 58767326.712228514, 64321592.680319555, 46754957.09612631, 31945079.01146563, 37369069.89530453, 23484987.088225998, 12673570.041443137, 15184884.46023809, 23948183.825278398, 65504570.80264021, 78571604.40059792, 74238966.02698576, 79043369.34688698, 110040913.69771357, 94256145.88921466, 59007694.00437142, 59676633.74623329, 43141044.26719053, 30774055.949897435, 46621428.05703393, 51622595.36089556, 55585604.40459501, 47803226.8198809, 50506650.85906965, 48196804.59925304, 37943794.98562339, 27474775.596191064, 21259882.938607253, 15746579.66960283, 12156946.338818103, 15785452.87755062, 16320763.207649827, 19328693.36026653, 22412709.18213983, 14342280.062310401, 15027744.835756224, 12612125.57747428, 14803237.06397591, 24064676.224249125, 21818760.13590584, 11271728.278505292, 3391990.2034983877, 2925694.986435364, 6920733.436925132, 5312203.515169545, 1466030.780758115], "poc": 143.8865, "hvn_levels": [95.6851, 99.3929, 129.0553, 132.7631, 136.47089999999997, 140.1787, 143.8865, 147.59429999999998, 151.3021, 155.00990000000002], "lvn_levels": [80.85390000000001, 84.5617, 203.2113, 229.1659, 243.9971, 247.7049, 251.41269999999997, 255.1205, 258.8283, 262.5361], "price_min": 79.0, "price_max": 264.39, "current_price": 189.31}, "SUIUSDT": {"price_levels": [0.507475, 0.597425, 0.6873750000000001, 0.777325, 0.867275, 0.957225, 1.047175, 1.137125, 1.227075, 1.317025, 1.4069749999999999, 1.496925, 1.586875, 1.676825, 1.766775, 1.856725, 1.946675, 2.036625, 2.126575, 2.216525, 2.306475, 2.396425, 2.486375, 2.5763249999999998, 2.6662749999999997, 2.7562249999999997, 2.8461749999999997, 2.9361249999999997, 3.0260749999999996, 3.1160249999999996, 3.2059749999999996, 3.2959249999999995, 3.3858749999999995, 3.4758249999999995, 3.5657749999999995, 3.6557249999999994, 3.7456749999999994, 3.8356249999999994, 3.9255749999999994, 4.015524999999999, 4.105474999999999, 4.195424999999999, 4.285374999999999, 4.375324999999999, 4.465275, 4.555225, 4.645175, 4.735125, 4.825075, 4.915025], "volume": [137085057.4431947, 269661939.20983404, 338981685.08070433, 1264378903.2406862, 2199641792.3211784, 1195384733.4857006, 2016094000.1729386, 1664743629.5617592, 939183154.9249316, 707151831.6733329, 779499111.1339054, 1376505319.9041607, 1683875096.73247, 1617599219.2570727, 1385653100.9304488, 1060474368.6826924, 932670909.7584867, 979709030.6873837, 500031040.03458136, 384487247.84325945, 365309933.4515898, 35233814.62035829, 14897146.26984128, 19515207.0474181, 11180744.1299979, 35232176.834454454, 67211055.91019501, 108734739.21198328, 155073363.30190867, 193164217.4139579, 314988311.44571984, 262322298.82402644, 352086456.5094851, 354307474.1107626, 282630212.36936074, 345030049.92872, 396770908.40081626, 206060784.82451656, 69165500.43427129, 113721517.28012921, 204931373.154283, 298308421.13303274, 292673613.19628125, 222531611.1410861, 160474817.59574044, 181005394.00221565, 190178197.9017703, 197074920.31753582, 106298663.25888947, 14661349.300928922], "poc": 0.867275, "hvn_levels": [0.777325, 0.867275, 0.957225, 1.047175, 1.137125, 1.496925, 1.586875, 1.676825, 1.766775, 1.856725], "lvn_levels": [2.396425, 2.486375, 2.5763249999999998, 2.6662749999999997, 2.7562249999999997, 2.8461749999999997, 2.9361249999999997, 3.9255749999999994, 4.825075, 4.915025], "price_min": 0.4625, "price_max": 4.96, "current_price": 4.1225}, "TIAUSDT": {"price_levels": [3.8961949999999996, 4.244585, 4.592975, 4.941365, 5.2897549999999995, 5.638145, 5.986535, 6.334924999999999, 6.6833149999999995, 7.031705, 7.380095, 7.728485, 8.076875000000001, 8.425265, 8.773654999999998, 9.122045, 9.470434999999998, 9.818825, 10.167214999999999, 10.515605, 10.863995, 11.212385, 11.560775, 11.909164999999998, 12.257555, 12.605944999999998, 12.954335, 13.302724999999999, 13.651114999999997, 13.999505, 14.347894999999998, 14.696285, 15.044674999999998, 15.393065, 15.741454999999998, 16.089845, 16.438235, 16.786625, 17.135015, 17.483404999999998, 17.831795, 18.180185, 18.528575, 18.876965, 19.225355, 19.573745, 19.922135, 20.270525, 20.618915, 20.967305], "volume": [13895965.608922869, 57203925.278261155, 122716303.49712446, 207159540.65667063, 229379799.28385526, 175910375.7119106, 153990395.11932373, 138924955.42219472, 82900847.92024294, 47720045.288994364, 64115719.31564052, 67675795.23315771, 95856126.61213015, 66266094.697487764, 40989585.16869045, 30127319.35993064, 29521714.600015674, 30462263.25725686, 30131167.28986215, 30391784.374555532, 28121836.919273436, 24480194.59414519, 22735273.56522767, 15709803.797771117, 14069317.736850781, 8068260.828612311, 10429189.097654391, 12845772.780202879, 21686488.772965245, 18382488.129436478, 16636284.921507454, 18709731.481379658, 19861206.939470313, 20493858.0899103, 28691795.899355877, 31245570.261767358, 29469093.87830676, 33249643.505545534, 32194859.379821863, 24845575.820890084, 15876783.688762365, 17374231.78730105, 11523446.158513643, 13714339.470536133, 9979057.39149189, 9791197.371916186, 7354643.119773172, 3318598.858702659, 1013548.1026266472, 333411.72405370104], "poc": 5.2897549999999995, "hvn_levels": [4.592975, 4.941365, 5.2897549999999995, 5.638145, 5.986535, 6.334924999999999, 6.6833149999999995, 7.728485, 8.076875000000001, 8.425265], "lvn_levels": [12.605944999999998, 12.954335, 13.302724999999999, 18.528575, 19.225355, 19.573745, 19.922135, 20.270525, 20.618915, 20.967305], "price_min": 3.722, "price_max": 21.1415, "current_price": 4.621}, "TRXUSDT": {"price_levels": [0.1046385, 0.1116155, 0.11859249999999999, 0.1255695, 0.1325465, 0.13952350000000002, 0.1465005, 0.1534775, 0.1604545, 0.1674315, 0.17440850000000002, 0.18138549999999998, 0.1883625, 0.1953395, 0.2023165, 0.20929350000000002, 0.21627049999999998, 0.2232475, 0.2302245, 0.2372015, 0.2441785, 0.2511555, 0.2581325, 0.2651095, 0.2720865, 0.2790635, 0.2860405, 0.2930175, 0.2999945, 0.3069715, 0.31394849999999996, 0.3209255, 0.3279025, 0.3348795, 0.3418565, 0.3488335, 0.35581050000000003, 0.3627875, 0.3697645, 0.3767415, 0.3837185, 0.3906955, 0.3976725, 0.4046495, 0.4116265, 0.4186035, 0.42558050000000003, 0.4325575, 0.4395345, 0.4465115], "volume": [5116955251.996282, 17538677357.868404, 20444169344.492516, 15980697540.3443, 9232811893.776817, 9237287058.100098, 2944308440.0551863, 10238692549.57859, 11373426977.964188, 5142794124.38789, 1160916694.1099029, 1494790169.1259992, 1294612800.8218396, 2539780195.736505, 4362675651.027509, 2412531744.671375, 922710956.9987946, 502290212.75796896, 818182683.7922032, 1117761458.220051, 2543443681.3773365, 3838856715.387118, 4605294483.023805, 1893628529.281732, 1661799465.2920659, 1927739509.2769876, 2208597345.1428924, 2106773221.5951037, 1789171351.7725785, 985542530.408763, 1134454301.6461976, 2153129604.8562036, 2193911466.3262587, 1676718810.9514263, 601162891.6848662, 139336425.4274966, 208746050.5739018, 179403143.2269877, 269253929.2807791, 364231898.13296825, 516046233.4003557, 565533531.0985093, 353739662.8813005, 237856536.52506697, 226402500.2205278, 152766118.03452063, 147006603.64951956, 126015892.86514889, 98926436.49831818, 94750393.4348438], "poc": 0.11859249999999999, "hvn_levels": [0.1046385, 0.1116155, 0.11859249999999999, 0.1255695, 0.1325465, 0.13952350000000002, 0.1534775, 0.1604545, 0.1674315, 0.2581325], "lvn_levels": [0.3488335, 0.35581050000000003, 0.3627875, 0.4046495, 0.4116265, 0.4186035, 0.42558050000000003, 0.4325575, 0.4395345, 0.4465115], "price_min": 0.10115, "price_max": 0.45, "current_price": 0.2548}, "UNIUSDT": {"price_levels": [4.850670000000001, 5.14601, 5.44135, 5.73669, 6.032030000000001, 6.32737, 6.62271, 6.918050000000001, 7.21339, 7.50873, 7.804069999999999, 8.09941, 8.39475, 8.69009, 8.98543, 9.28077, 9.57611, 9.871450000000001, 10.16679, 10.46213, 10.75747, 11.05281, 11.34815, 11.64349, 11.938830000000001, 12.23417, 12.52951, 12.82485, 13.12019, 13.415529999999999, 13.71087, 14.006210000000001, 14.30155, 14.59689, 14.89223, 15.18757, 15.482909999999999, 15.77825, 16.073590000000003, 16.36893, 16.664270000000002, 16.959609999999998, 17.25495, 17.550289999999997, 17.84563, 18.140970000000003, 18.43631, 18.731650000000002, 19.026989999999998, 19.32233], "volume": [2685246.6669134772, 5316350.890332827, 4651768.26220552, 18870884.722552426, 36965962.19246882, 44393844.49293005, 56545338.99888746, 62615635.95103211, 56229679.14126485, 74091238.04783885, 79216397.60210145, 67594796.8546548, 24395100.64033413, 26931701.516719997, 66649209.34802359, 70102350.3675708, 33735557.16921344, 28117430.700013522, 26128690.551985584, 33261595.969862532, 58147875.07669794, 68947682.17873295, 50618173.559647806, 33890215.9132695, 31095589.648040578, 29023152.272964958, 38307777.946898684, 40431058.67484203, 35272997.994188644, 26132221.10652097, 22067127.40718233, 28163959.174865164, 25294799.89582195, 15352527.022670694, 16693213.688269977, 13461634.275794182, 15115672.81669977, 17951521.38165097, 13733083.337905258, 13606823.459450174, 11215571.129595857, 8306633.240759201, 8464189.370899936, 9816273.465790166, 7105624.504333011, 7929564.858584873, 7165951.192084826, 4591370.106217205, 1455013.9950025722, 850211.5777116714], "poc": 7.804069999999999, "hvn_levels": [6.62271, 6.918050000000001, 7.21339, 7.50873, 7.804069999999999, 8.09941, 8.98543, 9.28077, 10.75747, 11.05281], "lvn_levels": [4.850670000000001, 5.14601, 5.44135, 16.959609999999998, 17.84563, 18.140970000000003, 18.43631, 18.731650000000002, 19.026989999999998, 19.32233], "price_min": 4.703, "price_max": 19.47, "current_price": 13.243}, "XRPUSDT": {"price_levels": [0.40756899999999996, 0.45810699999999993, 0.508645, 0.559183, 0.609721, 0.6602589999999999, 0.7107969999999999, 0.761335, 0.811873, 0.8624109999999999, 0.912949, 0.963487, 1.014025, 1.064563, 1.115101, 1.1656389999999999, 1.2161769999999998, 1.2667149999999998, 1.317253, 1.367791, 1.418329, 1.4688670000000001, 1.5194050000000001, 1.569943, 1.620481, 1.671019, 1.721557, 1.772095, 1.822633, 1.873171, 1.923709, 1.9742469999999999, 2.0247849999999996, 2.075323, 2.1258609999999996, 2.176399, 2.226937, 2.277475, 2.3280130000000003, 2.378551, 2.429089, 2.479627, 2.530165, 2.5807029999999997, 2.631241, 2.6817789999999997, 2.732317, 2.7828549999999996, 2.833393, 2.8839309999999996], "volume": [1456854983.716911, 7434355603.749406, 33790670754.557026, 30776782085.35063, 35274691855.60661, 7542079903.932659, 4380087719.3312845, 665869071.3642535, 788521563.9362773, 583895579.6199718, 429734438.45358235, 307667371.95819086, 413162318.20257795, 1646891099.415037, 2640310255.027701, 1177983630.1828768, 376524573.0496311, 205890206.42636, 441572780.93064564, 1227198155.6366005, 1565821748.7277908, 1920329690.1054158, 709088199.737286, 655055518.5641581, 268197580.50579435, 235816827.09468785, 264404980.97919747, 213440295.79495385, 270087882.33440644, 649260974.2687402, 664588379.8130746, 230370676.46233788, 462795953.14180124, 772734770.159522, 853058417.547862, 1483344411.4766243, 1545989180.1970537, 1832124303.5176578, 2295197363.042221, 2449009486.101807, 2442244075.8467646, 1288195938.2282078, 1277039694.6544216, 1182463865.0544584, 924603007.980681, 667401677.1479826, 556679508.8048428, 181610344.59925437, 103284907.77278961, 51180449.44997163], "poc": 0.609721, "hvn_levels": [0.45810699999999993, 0.508645, 0.559183, 0.609721, 0.6602589999999999, 0.7107969999999999, 1.115101, 2.3280130000000003, 2.378551, 2.429089], "lvn_levels": [1.2667149999999998, 1.620481, 1.671019, 1.721557, 1.772095, 1.822633, 1.9742469999999999, 2.7828549999999996, 2.833393, 2.8839309999999996], "price_min": 0.3823, "price_max": 2.9092, "current_price": 2.0836}};
+
+        // 1. Taker Buy/Sell by Hour
+        if (avgHour && avgHour.hours) {
+            const chart = echarts.init(document.getElementById('chart-taker-hour'));
+            chart.setOption({
+                tooltip: { trigger: 'axis' },
+                legend: { data: ['Taker Buy/Sell Ratio', '1.0 (Equilibrio)'], top: 5 },
+                xAxis: { type: 'category', data: avgHour.hours.map(h => h + ':00') },
+                yAxis: [
+                    { type: 'value', name: 'Ratio', min: 0.8, max: 1.2 },
+                ],
+                series: [
+                    {
+                        name: 'Taker Buy/Sell Ratio',
+                        type: 'line',
+                        data: avgHour.ratio,
+                        smooth: true,
+                        itemStyle: { color: '#ff9800' },
+                        areaStyle: { opacity: 0.3 },
+                        markLine: { data: [{ yAxis: 1.0, lineStyle: { color: '#888', type: 'dashed' } }] }
+                    }
+                ],
+                grid: { left: '8%', right: '5%', bottom: '10%', top: '15%' }
+            });
+        }
+
+        // 2. Net Aggression by Hour
+        if (avgHour && avgHour.hours) {
+            const chart = echarts.init(document.getElementById('chart-net-agg'));
+            chart.setOption({
+                tooltip: { trigger: 'axis' },
+                xAxis: { type: 'category', data: avgHour.hours.map(h => h + ':00') },
+                yAxis: { type: 'value', name: 'Net %' },
+                series: [{
+                    name: 'Net Aggression %',
+                    type: 'bar',
+                    data: avgHour.net_pct,
+                    itemStyle: {
+                        color: function(p) { return p.data > 0 ? '#26a69a' : '#ef5350'; }
+                    }
+                }],
+                grid: { left: '8%', right: '5%', bottom: '10%' }
+            });
+        }
+
+        // 5. Wick Analysis by Hour
+        if (wickAvgHour && wickAvgHour.hours) {
+            const chart = echarts.init(document.getElementById('chart-wick-hour'));
+            chart.setOption({
+                tooltip: { trigger: 'axis' },
+                legend: { data: ['Upper Wick (Rejeicao Venda)', 'Lower Wick (Rejeicao Compra)', 'Body (Conviccao)'], top: 5 },
+                xAxis: { type: 'category', data: wickAvgHour.hours.map(h => h + ':00') },
+                yAxis: { type: 'value', name: 'Ratio' },
+                series: [
+                    { name: 'Upper Wick', type: 'line', data: wickAvgHour.upper_wick, smooth: true, itemStyle: { color: '#ef5350' } },
+                    { name: 'Lower Wick', type: 'line', data: wickAvgHour.lower_wick, smooth: true, itemStyle: { color: '#26a69a' } },
+                    { name: 'Body', type: 'line', data: wickAvgHour.body, smooth: true, itemStyle: { color: '#ff9800' } }
+                ],
+                grid: { left: '8%', right: '5%', bottom: '10%', top: '15%' }
+            });
+        }
+
+        // 6. Volume Profile charts
+        Object.keys(volProfile).slice(0, 10).forEach((sym, i) => {
+            const el = document.getElementById('chart-vp-' + i);
+            if (!el) return;
+            const info = volProfile[sym];
+            const chart = echarts.init(el);
+            chart.setOption({
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '15%', right: '10%', bottom: '10%' },
+                xAxis: { type: 'value', name: 'Volume' },
+                yAxis: { type: 'value', name: 'Preco', inverse: true, min: info.price_min, max: info.price_max },
+                series: [{
+                    type: 'bar',
+                    data: info.volume.map((v, i) => [v, info.price_levels[i]]),
+                    itemStyle: {
+                        color: function(p) {
+                            const pocIdx = info.volume.indexOf(Math.max(...info.volume));
+                            return p.dataIndex === pocIdx ? '#ff9800' : '#1e88e5';
+                        }
+                    }
+                }],
+                markLine: {
+                    data: [
+                        { yAxis: info.poc, lineStyle: { color: '#ff9800', type: 'solid', width: 2 }, label: { formatter: 'POC' } },
+                        { yAxis: info.current_price, lineStyle: { color: '#26a69a', type: 'dashed', width: 2 }, label: { formatter: 'Atual' } }
+                    ]
+                }
+            });
+        });
+
+        // 9. OFI by Hour
+        if (ofiAvgHour && ofiAvgHour.hours) {
+            const chart = echarts.init(document.getElementById('chart-ofi-hour'));
+            chart.setOption({
+                tooltip: { trigger: 'axis' },
+                xAxis: { type: 'category', data: ofiAvgHour.hours.map(h => h + ':00') },
+                yAxis: { type: 'value', name: 'OFI' },
+                series: [{
+                    type: 'bar',
+                    data: ofiAvgHour.ofi,
+                    itemStyle: { color: function(p) { return p.data > 0 ? '#26a69a' : '#ef5350'; } }
+                }],
+                grid: { left: '8%', right: '5%', bottom: '10%' }
+            });
+        }
+
+        // 11. Candle Anatomy by Hour
+        if (anatomyAvgHour && anatomyAvgHour.hours) {
+            const chart = echarts.init(document.getElementById('chart-anatomy-hour'));
+            chart.setOption({
+                tooltip: { trigger: 'axis' },
+                legend: { data: ['Body Ratio (Conviccao)', '% Bull Candles'], top: 5 },
+                xAxis: { type: 'category', data: anatomyAvgHour.hours.map(h => h + ':00') },
+                yAxis: [
+                    { type: 'value', name: 'Body Ratio' },
+                    { type: 'value', name: '% Bull', max: 1, axisLabel: { formatter: v => (v*100).toFixed(0) + '%' } }
+                ],
+                series: [
+                    { name: 'Body Ratio', type: 'bar', data: anatomyAvgHour.body_ratio, itemStyle: { color: '#ff9800' } },
+                    { name: '% Bull Candles', type: 'line', yAxisIndex: 1, data: anatomyAvgHour.bull_pct, smooth: true, itemStyle: { color: '#26a69a' } }
+                ],
+                grid: { left: '8%', right: '8%', bottom: '10%', top: '15%' }
+            });
+        }
+
+        // Tab switching
+        function showTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            event.target.classList.add('active');
+            // Resize charts in newly visible tab
+            setTimeout(() => {
+                const tab = document.getElementById(id);
+                tab.querySelectorAll('[id^=chart-]').forEach(el => {
+                    const inst = echarts.getInstanceByDom(el);
+                    if (inst) inst.resize();
+                });
+            }, 100);
+        }
+
+        window.addEventListener('resize', () => {
+            document.querySelectorAll('[id^=chart-]').forEach(el => {
+                const inst = echarts.getInstanceByDom(el);
+                if (inst) inst.resize();
+            });
+        });
+    </script>
+</body>
+</html>

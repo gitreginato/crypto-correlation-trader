@@ -1,0 +1,50 @@
+[project]
+name = "crypto-correl-bot"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+# E402 is common in scripts that need sys.path manipulation before imports.
+# We handle it with per-file-ignores below instead of disabling globally.
+select = ["E", "F", "W", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# Scripts insert project_root into sys.path before importing src.* modules.
+# E402 (module level import not at top) is expected in this pattern.
+"scripts/*.py" = ["E402"]
+# HTML-generating scripts have long string literals that can't be broken
+# without hurting readability. E501 (line too long) is accepted in these.
+"scripts/analyze_live.py" = ["E501"]
+"scripts/generate_microstructure_dashboard.py" = ["E501"]
+"scripts/generate_scientific_report.py" = ["E501"]
+"scripts/generate_report.py" = ["E501"]
+"scripts/generate_correlation_dashboard.py" = ["E501"]
+"scripts/analyze_correlations.py" = ["E501"]
+"scripts/analyze_microstructure.py" = ["E501"]
+"scripts/download_historical.py" = ["E501"]
+"scripts/statistical_analyzer.py" = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+no_implicit_optional = true
+
+# Packages without type stubs. Listed explicitly so mypy doesn't complain.
+[[tool.mypy.overrides]]
+module = [
+    "pyarrow",
+    "pyvis.network",
+    "sklearn.*",
+    "statsmodels.*",
+    "nolds",
+    "websockets",
+]
+ignore_missing_imports = true

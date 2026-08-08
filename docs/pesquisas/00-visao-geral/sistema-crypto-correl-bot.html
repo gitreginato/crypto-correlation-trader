@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Sistema crypto-correl-bot</title>
+<style>
+  body { margin: 0; background: #0B0E14; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
+  svg { max-width: 100%; height: auto; }
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1400" viewBox="0 0 2000 1400" style="background:#0B0E14;">
+<style>
+  text { font-family: Inter, -apple-system, Segoe UI, sans-serif; }
+  .lane-label { font-size: 14px; font-weight: bold; fill: #fff; }
+  .node-label { font-size: 11px; fill: #fff; text-anchor: middle; }
+  .done { fill: #2e7d32; stroke: #4caf50; }
+  .todo { fill: #3a3a3a; stroke: #777; stroke-dasharray: 5,3; }
+  .partial { fill: #a67c00; stroke: #d4a017; }
+  .me { fill: #b71c1c; stroke: #e53935; }
+  .exchange { fill: #0277bd; stroke: #039be5; }
+  .retail { fill: #a55a00; stroke: #d4a017; }
+  .quant { fill: #6a1b9a; stroke: #8e24aa; }
+  .onchain { fill: #00695c; stroke: #00897b; }
+  .oracle { fill: #0d47a1; stroke: #1565c0; }
+  .lane-done { fill: #0f1f1a; stroke: #2e7d32; }
+  .lane-todo { fill: #1a0808; stroke: #777; stroke-dasharray: 5,3; }
+  .lane-partial { fill: #1f1800; stroke: #a67c00; }
+  .lane-exchange { fill: #0a1f2e; stroke: #0277bd; }
+  .lane-retail { fill: #2a1500; stroke: #a55a00; }
+  .lane-quant { fill: #1f0a2e; stroke: #6a1b9a; }
+  .lane-onchain { fill: #002a2a; stroke: #00695c; }
+  .edge { stroke: #4caf50; stroke-width: 2; fill: none; }
+  .edge-dashed { stroke: #777; stroke-width: 1; fill: none; stroke-dasharray: 5,3; }
+  .edge-future { stroke: #b71c1c; stroke-width: 3; fill: none; stroke-dasharray: 8,4; }
+</style>
+<defs>
+  <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3"   orient="auto" markerUnits="strokeWidth">
+    <path d="M0,0 L0,6 L9,3 z" fill="#4caf50"/>
+  </marker>
+  <marker id="arrow-dashed" markerWidth="10" markerHeight="10" refX="9" refY="3"   orient="auto" markerUnits="strokeWidth">
+    <path d="M0,0 L0,6 L9,3 z" fill="#777"/>
+  </marker>
+  <marker id="arrow-future" markerWidth="10" markerHeight="10" refX="9" refY="3"   orient="auto" markerUnits="strokeWidth">
+    <path d="M0,0 L0,6 L9,3 z" fill="#b71c1c"/>
+  </marker>
+</defs>
+<rect x="40.0" y="100.0" width="1900.0" height="160.0" rx="4" class="lane-done" stroke-width="1.5"/>
+<rect x="40.0" y="100.0" width="1900.0" height="30" rx="4" class="lane-done" stroke-width="1.5"/>
+<text x="990.0" y="120.0" class="lane-label" text-anchor="middle">CAMADA DE DADOS (pronto)</text>
+<rect x="40.0" y="290.0" width="1900.0" height="160.0" rx="4" class="lane-done" stroke-width="1.5"/>
+<rect x="40.0" y="290.0" width="1900.0" height="30" rx="4" class="lane-done" stroke-width="1.5"/>
+<text x="990.0" y="310.0" class="lane-label" text-anchor="middle">CAMADA DE ANALISE (pronto)</text>
+<rect x="40.0" y="480.0" width="1900.0" height="180.0" rx="4" class="lane-partial" stroke-width="1.5"/>
+<rect x="40.0" y="480.0" width="1900.0" height="30" rx="4" class="lane-partial" stroke-width="1.5"/>
+<text x="990.0" y="500.0" class="lane-label" text-anchor="middle">CAMADA DE ESTRATEGIA (5/9 pronto, 4/9 planejado)</text>
+<rect x="40.0" y="690.0" width="1900.0" height="140.0" rx="4" class="lane-done" stroke-width="1.5"/>
+<rect x="40.0" y="690.0" width="1900.0" height="30" rx="4" class="lane-done" stroke-width="1.5"/>
+<text x="990.0" y="710.0" class="lane-label" text-anchor="middle">CAMADA DE BACKTEST (pronto)</text>
+<rect x="40.0" y="860.0" width="1900.0" height="160.0" rx="4" class="lane-done" stroke-width="1.5"/>
+<rect x="40.0" y="860.0" width="1900.0" height="30" rx="4" class="lane-done" stroke-width="1.5"/>
+<text x="990.0" y="880.0" class="lane-label" text-anchor="middle">CAMADA DE VISUALIZACAO / DASHBOARDS (pronto)</text>
+<rect x="40.0" y="1060.0" width="1900.0" height="160.0" rx="4" class="lane-todo" stroke-width="1.5"/>
+<rect x="40.0" y="1060.0" width="1900.0" height="30" rx="4" class="lane-todo" stroke-width="1.5"/>
+<text x="990.0" y="1080.0" class="lane-label" text-anchor="middle">CAMADA DE BOT [NAO IMPLEMENTADA] (Fase 4-5)</text>
+<path d="M 140.0,190.0 L 440.0,190.0 L 440.0,190.0 L 740.0,190.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 340.0,190.0 L 540.0,190.0 L 540.0,190.0 L 740.0,190.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 540.0,190.0 L 640.0,190.0 L 640.0,190.0 L 740.0,190.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 740.0,190.0 L 940.0,190.0 L 940.0,190.0 L 1140.0,190.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 940.0,190.0 L 1040.0,190.0 L 1040.0,190.0 L 1140.0,190.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 1140.0,190.0 L 1240.0,190.0 L 1240.0,190.0 L 1340.0,190.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 990.0,180.0 L 990.0,180.0 L 990.0,370.0 L 990.0,370.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 150.0,380.0 L 260.0,380.0 L 260.0,380.0 L 370.0,380.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 370.0,380.0 L 480.0,380.0 L 480.0,380.0 L 590.0,380.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 990.0,370.0 L 990.0,370.0 L 990.0,570.0 L 990.0,570.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 140.0,570.0 L 240.0,570.0 L 240.0,570.0 L 340.0,570.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 140.0,570.0 L 340.0,570.0 L 340.0,570.0 L 540.0,570.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 140.0,570.0 L 440.0,570.0 L 440.0,570.0 L 740.0,570.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 950.0,570.0 L 545.0,570.0 L 545.0,570.0 L 140.0,570.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 990.0,570.0 L 990.0,570.0 L 990.0,760.0 L 990.0,760.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 150.0,765.0 L 260.0,765.0 L 260.0,765.0 L 370.0,765.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 370.0,765.0 L 475.0,765.0 L 475.0,765.0 L 580.0,765.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 990.0,760.0 L 990.0,760.0 L 990.0,940.0 L 990.0,940.0" class="edge" marker-end="url(#arrow)"/>
+<path d="M 990.0,940.0 L 990.0,940.0 L 990.0,1140.0 L 990.0,1140.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 990.0,1140.0 L 975.0,1140.0 L 975.0,1300.0 L 960.0,1300.0" class="edge-future" marker-end="url(#arrow-future)"/>
+<path d="M 140.0,1150.0 L 240.0,1150.0 L 240.0,1150.0 L 340.0,1150.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 140.0,1150.0 L 340.0,1150.0 L 340.0,1150.0 L 540.0,1150.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 140.0,1150.0 L 440.0,1150.0 L 440.0,1150.0 L 740.0,1150.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 340.0,1150.0 L 640.0,1150.0 L 640.0,1150.0 L 940.0,1150.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<rect x="60.0" y="150.0" width="160.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="140.0" y="180.5" class="node-label">Binance Vision</text>
+<text x="140.0" y="193.5" class="node-label">CSV historico 2017+</text>
+<text x="140.0" y="206.5" class="node-label">Free, sem rate limit</text>
+<rect x="260.0" y="150.0" width="160.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="340.0" y="180.5" class="node-label">Binance REST API</text>
+<text x="340.0" y="193.5" class="node-label">klines + ticker</text>
+<text x="340.0" y="206.5" class="node-label">1200 w/min</text>
+<rect x="460.0" y="150.0" width="160.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="540.0" y="180.5" class="node-label">Binance WebSocket</text>
+<text x="540.0" y="193.5" class="node-label">depth, trades, funding,</text>
+<text x="540.0" y="206.5" class="node-label">liquidations, OI, L/S</text>
+<rect x="660.0" y="150.0" width="160.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="740.0" y="180.5" class="node-label">LiveCollector</text>
+<text x="740.0" y="193.5" class="node-label">src/data/live_collector.py</text>
+<text x="740.0" y="206.5" class="node-label">512 linhas</text>
+<rect x="860.0" y="150.0" width="160.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="940.0" y="187.0" class="node-label">download_historical.py</text>
+<text x="940.0" y="200.0" class="node-label">Vision + REST -> Parquet</text>
+<rect x="1060.0" y="150.0" width="160.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="1140.0" y="180.5" class="node-label">ParquetStore</text>
+<text x="1140.0" y="193.5" class="node-label">src/data/parquet_store.py</text>
+<text x="1140.0" y="206.5" class="node-label">120 arquivos / 5.1 MB</text>
+<rect x="1260.0" y="150.0" width="160.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="1340.0" y="180.5" class="node-label">Universe</text>
+<text x="1340.0" y="193.5" class="node-label">src/data/universe.py</text>
+<text x="1340.0" y="206.5" class="node-label">25 symbols USDT</text>
+<rect x="60.0" y="340.0" width="180.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="150.0" y="370.5" class="node-label">returns.py</text>
+<text x="150.0" y="383.5" class="node-label">log/simple returns</text>
+<text x="150.0" y="396.5" class="node-label">alinhamento multi-asset</text>
+<rect x="280.0" y="340.0" width="180.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="370.0" y="370.5" class="node-label">correlation.py</text>
+<text x="370.0" y="383.5" class="node-label">Pearson/Spearman/Kendall</text>
+<text x="370.0" y="396.5" class="node-label">rolling, distancia</text>
+<rect x="500.0" y="340.0" width="180.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="590.0" y="370.5" class="node-label">graph.py (NetworkX)</text>
+<text x="590.0" y="383.5" class="node-label">10 nodes, 40 edges</text>
+<text x="590.0" y="396.5" class="node-label">2 comunidades</text>
+<rect x="720.0" y="340.0" width="200.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="820.0" y="370.5" class="node-label">statistical_analyzer.py</text>
+<text x="820.0" y="383.5" class="node-label">ADF, KPSS, Hurst, GARCH</text>
+<text x="820.0" y="396.5" class="node-label">HMM, ruptures, VaR/CVaR</text>
+<rect x="60.0" y="530.0" width="160.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="140.0" y="567.0" class="node-label">base.py (interface)</text>
+<text x="140.0" y="580.0" class="node-label">Strategy pattern</text>
+<rect x="260.0" y="530.0" width="160.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="340.0" y="560.5" class="node-label">STRAT-01</text>
+<text x="340.0" y="573.5" class="node-label">Mean Reversion Corr</text>
+<text x="340.0" y="586.5" class="node-label">WR 60%+ Sharpe 1.5+</text>
+<rect x="460.0" y="530.0" width="160.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="540.0" y="560.5" class="node-label">STRAT-06</text>
+<text x="540.0" y="573.5" class="node-label">Momentum / Trend</text>
+<text x="540.0" y="586.5" class="node-label">WR 45%+ R:R 3:1</text>
+<rect x="660.0" y="530.0" width="160.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="740.0" y="560.5" class="node-label">STRAT-03</text>
+<text x="740.0" y="573.5" class="node-label">StatArb Cointegracao</text>
+<text x="740.0" y="586.5" class="node-label">WR 65%+ Sharpe 2.0+</text>
+<rect x="860.0" y="530.0" width="180.0" height="80.0" rx="6" class="done" stroke-width="2"/>
+<text x="950.0" y="560.5" class="node-label">STRAT-04</text>
+<text x="950.0" y="573.5" class="node-label">Entropy/Hurst (meta-filter)</text>
+<text x="950.0" y="586.5" class="node-label">+30% Sharpe outras</text>
+<rect x="1080.0" y="530.0" width="160.0" height="80.0" rx="6" class="todo" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="1160.0" y="560.5" class="node-label">STRAT-02</text>
+<text x="1160.0" y="573.5" class="node-label">Price Action</text>
+<text x="1160.0" y="586.5" class="node-label">[NAO IMPLEMENTADO]</text>
+<rect x="1260.0" y="530.0" width="160.0" height="80.0" rx="6" class="todo" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="1340.0" y="560.5" class="node-label">STRAT-05</text>
+<text x="1340.0" y="573.5" class="node-label">Volume Profile</text>
+<text x="1340.0" y="586.5" class="node-label">[NAO IMPLEMENTADO]</text>
+<rect x="1440.0" y="530.0" width="160.0" height="80.0" rx="6" class="todo" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="1520.0" y="560.5" class="node-label">STRAT-07</text>
+<text x="1520.0" y="573.5" class="node-label">VWAP Reversion</text>
+<text x="1520.0" y="586.5" class="node-label">[NAO IMPLEMENTADO]</text>
+<rect x="1620.0" y="530.0" width="180.0" height="80.0" rx="6" class="todo" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="1710.0" y="560.5" class="node-label">STRAT-08</text>
+<text x="1710.0" y="573.5" class="node-label">Funding Arb (delta-neutral)</text>
+<text x="1710.0" y="586.5" class="node-label">[NAO IMPLEMENTADO]</text>
+<rect x="1820.0" y="530.0" width="100.0" height="80.0" rx="6" class="todo" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="1870.0" y="560.5" class="node-label">STRAT-09</text>
+<text x="1870.0" y="573.5" class="node-label">Liquidity Sweep (ICT)</text>
+<text x="1870.0" y="586.5" class="node-label">[NAO IMPLEMENTADO]</text>
+<rect x="60.0" y="730.0" width="180.0" height="70.0" rx="6" class="done" stroke-width="2"/>
+<text x="150.0" y="755.5" class="node-label">engine.py (VectorBT)</text>
+<text x="150.0" y="768.5" class="node-label">vetorizado Numba</text>
+<text x="150.0" y="781.5" class="node-label">custos, slippage</text>
+<rect x="280.0" y="730.0" width="180.0" height="70.0" rx="6" class="done" stroke-width="2"/>
+<text x="370.0" y="755.5" class="node-label">walk_forward.py</text>
+<text x="370.0" y="768.5" class="node-label">IS/OOS, anti-overfit</text>
+<text x="370.0" y="781.5" class="node-label">alerta Sharpe IS > 3.0</text>
+<rect x="500.0" y="730.0" width="160.0" height="70.0" rx="6" class="done" stroke-width="2"/>
+<text x="580.0" y="762.0" class="node-label">run_backtest.py</text>
+<text x="580.0" y="775.0" class="node-label">pipeline CLI</text>
+<rect x="60.0" y="910.0" width="180.0" height="70.0" rx="6" class="done" stroke-width="2"/>
+<text x="150.0" y="942.0" class="node-label">graph_visualizer.py</text>
+<text x="150.0" y="955.0" class="node-label">Pyvis HTML interativo</text>
+<rect x="280.0" y="910.0" width="180.0" height="70.0" rx="6" class="done" stroke-width="2"/>
+<text x="370.0" y="942.0" class="node-label">analyze_correlations.py</text>
+<text x="370.0" y="955.0" class="node-label">lags, ToD, vol/queue corr</text>
+<rect x="500.0" y="910.0" width="180.0" height="70.0" rx="6" class="done" stroke-width="2"/>
+<text x="590.0" y="942.0" class="node-label">analyze_microstructure.py</text>
+<text x="590.0" y="955.0" class="node-label">wicks, VP, order flow</text>
+<rect x="720.0" y="910.0" width="200.0" height="70.0" rx="6" class="done" stroke-width="2"/>
+<text x="820.0" y="935.5" class="node-label">analyze_live.py</text>
+<text x="820.0" y="948.5" class="node-label">terminal cientifico real-time</text>
+<text x="820.0" y="961.5" class="node-label">1735 linhas (maior)</text>
+<rect x="960.0" y="910.0" width="160.0" height="70.0" rx="6" class="done" stroke-width="2"/>
+<text x="1040.0" y="942.0" class="node-label">generate_correlation</text>
+<text x="1040.0" y="955.0" class="node-label">_dashboard.py</text>
+<rect x="1160.0" y="910.0" width="160.0" height="70.0" rx="6" class="done" stroke-width="2"/>
+<text x="1240.0" y="942.0" class="node-label">generate_microstructure</text>
+<text x="1240.0" y="955.0" class="node-label">_dashboard.py</text>
+<rect x="1360.0" y="910.0" width="180.0" height="70.0" rx="6" class="done" stroke-width="2"/>
+<text x="1450.0" y="935.5" class="node-label">generate_report.py</text>
+<text x="1450.0" y="948.5" class="node-label">SCIENTIFIC_REPORT.md</text>
+<text x="1450.0" y="961.5" class="node-label">580 linhas, 40+ metricas</text>
+<rect x="60.0" y="1110.0" width="160.0" height="80.0" rx="6" class="todo" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="140.0" y="1140.5" class="node-label">engine.py</text>
+<text x="140.0" y="1153.5" class="node-label">loop principal asyncio</text>
+<text x="140.0" y="1166.5" class="node-label">[FALTA]</text>
+<rect x="260.0" y="1110.0" width="160.0" height="80.0" rx="6" class="todo" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="340.0" y="1140.5" class="node-label">risk_manager.py</text>
+<text x="340.0" y="1153.5" class="node-label">stop, DD, kill switch</text>
+<text x="340.0" y="1166.5" class="node-label">[FALTA]</text>
+<rect x="460.0" y="1110.0" width="160.0" height="80.0" rx="6" class="todo" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="540.0" y="1140.5" class="node-label">paper_broker.py</text>
+<text x="540.0" y="1153.5" class="node-label">simulador</text>
+<text x="540.0" y="1166.5" class="node-label">[FALTA]</text>
+<rect x="660.0" y="1110.0" width="160.0" height="80.0" rx="6" class="todo" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="740.0" y="1140.5" class="node-label">live_broker.py (CCXT)</text>
+<text x="740.0" y="1153.5" class="node-label">execucao real</text>
+<text x="740.0" y="1166.5" class="node-label">[FALTA]</text>
+<rect x="860.0" y="1110.0" width="160.0" height="80.0" rx="6" class="todo" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="940.0" y="1140.5" class="node-label">notifications.py</text>
+<text x="940.0" y="1153.5" class="node-label">Telegram /status /stop</text>
+<text x="940.0" y="1166.5" class="node-label">[FALTA]</text>
+<rect x="800.0" y="1260.0" width="320.0" height="80.0" rx="6" class="done" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="960.0" y="1290.5" class="node-label" font-weight="bold">PRODUCAO LIVE (Fase 5)</text>
+<text x="960.0" y="1303.5" class="node-label" font-weight="bold">$50-100 capital inicial</text>
+<text x="960.0" y="1316.5" class="node-label" font-weight="bold">[SONHO]</text>
+<text x="1000.0" y="40.0" font-size="24" fill="#FFFFFF" text-anchor="middle" font-weight="bold">crypto-correl-bot: Organograma do Sistema</text>
+<text x="1000.0" y="80.0" font-size="12" fill="#787B86" text-anchor="middle" font-weight="normal">Verde = pronto | Cinza = planejado | Vermelho = crypto-correl-bot (nos)</text>
+<text x="1510.0" y="1280.0" font-size="11" fill="#D1D4DC" text-anchor="start" font-weight="normal"><b>Estatisticas do projeto</b><br>Linhas src/: 2.875<br>Linhas scripts/: 6.309<br>Total: 9.184 linhas<br>Testes: 52 (pytest)<br>Symbols: 10 (meta: 30+)<br>Dados: 45.500 candles / 5.1 MB<br>Estrategias: 5/9 implementadas<br>Fase atual: 3 (backtest)</text>
+</svg>
+</body>
+</html>

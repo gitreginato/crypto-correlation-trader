@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Mercado Cripto-Trading 2026</title>
+<style>
+  body { margin: 0; background: #0B0E14; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
+  svg { max-width: 100%; height: auto; }
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1400" viewBox="0 0 2000 1400" style="background:#0B0E14;">
+<style>
+  text { font-family: Inter, -apple-system, Segoe UI, sans-serif; }
+  .lane-label { font-size: 14px; font-weight: bold; fill: #fff; }
+  .node-label { font-size: 11px; fill: #fff; text-anchor: middle; }
+  .done { fill: #2e7d32; stroke: #4caf50; }
+  .todo { fill: #3a3a3a; stroke: #777; stroke-dasharray: 5,3; }
+  .partial { fill: #a67c00; stroke: #d4a017; }
+  .me { fill: #b71c1c; stroke: #e53935; }
+  .exchange { fill: #0277bd; stroke: #039be5; }
+  .retail { fill: #a55a00; stroke: #d4a017; }
+  .quant { fill: #6a1b9a; stroke: #8e24aa; }
+  .onchain { fill: #00695c; stroke: #00897b; }
+  .oracle { fill: #0d47a1; stroke: #1565c0; }
+  .lane-done { fill: #0f1f1a; stroke: #2e7d32; }
+  .lane-todo { fill: #1a0808; stroke: #777; stroke-dasharray: 5,3; }
+  .lane-partial { fill: #1f1800; stroke: #a67c00; }
+  .lane-exchange { fill: #0a1f2e; stroke: #0277bd; }
+  .lane-retail { fill: #2a1500; stroke: #a55a00; }
+  .lane-quant { fill: #1f0a2e; stroke: #6a1b9a; }
+  .lane-onchain { fill: #002a2a; stroke: #00695c; }
+  .edge { stroke: #4caf50; stroke-width: 2; fill: none; }
+  .edge-dashed { stroke: #777; stroke-width: 1; fill: none; stroke-dasharray: 5,3; }
+  .edge-future { stroke: #b71c1c; stroke-width: 3; fill: none; stroke-dasharray: 8,4; }
+</style>
+<defs>
+  <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3"   orient="auto" markerUnits="strokeWidth">
+    <path d="M0,0 L0,6 L9,3 z" fill="#4caf50"/>
+  </marker>
+  <marker id="arrow-dashed" markerWidth="10" markerHeight="10" refX="9" refY="3"   orient="auto" markerUnits="strokeWidth">
+    <path d="M0,0 L0,6 L9,3 z" fill="#777"/>
+  </marker>
+  <marker id="arrow-future" markerWidth="10" markerHeight="10" refX="9" refY="3"   orient="auto" markerUnits="strokeWidth">
+    <path d="M0,0 L0,6 L9,3 z" fill="#b71c1c"/>
+  </marker>
+</defs>
+<rect x="40.0" y="100.0" width="1900.0" height="140.0" rx="4" class="lane-exchange" stroke-width="1.5"/>
+<rect x="40.0" y="100.0" width="1900.0" height="30" rx="4" class="lane-exchange" stroke-width="1.5"/>
+<text x="990.0" y="120.0" class="lane-label" text-anchor="middle">EXCHANGES (data + execucao)</text>
+<rect x="40.0" y="260.0" width="1900.0" height="120.0" rx="4" class="lane-exchange" stroke-width="1.5"/>
+<rect x="40.0" y="260.0" width="1900.0" height="30" rx="4" class="lane-exchange" stroke-width="1.5"/>
+<text x="990.0" y="280.0" class="lane-label" text-anchor="middle">ORACLES</text>
+<rect x="40.0" y="400.0" width="1900.0" height="140.0" rx="4" class="lane-retail" stroke-width="1.5"/>
+<rect x="40.0" y="400.0" width="1900.0" height="30" rx="4" class="lane-retail" stroke-width="1.5"/>
+<text x="990.0" y="420.0" class="lane-label" text-anchor="middle">BOTS RETAIL SaaS ($15-100/mes)</text>
+<rect x="40.0" y="560.0" width="1900.0" height="140.0" rx="4" class="lane-quant" stroke-width="1.5"/>
+<rect x="40.0" y="560.0" width="1900.0" height="30" rx="4" class="lane-quant" stroke-width="1.5"/>
+<text x="990.0" y="580.0" class="lane-label" text-anchor="middle">PLATAFORMAS QUANT / INSTITUCIONAL ($30-5000/mes)</text>
+<rect x="40.0" y="720.0" width="1900.0" height="140.0" rx="4" class="lane-onchain" stroke-width="1.5"/>
+<rect x="40.0" y="720.0" width="1900.0" height="30" rx="4" class="lane-onchain" stroke-width="1.5"/>
+<text x="990.0" y="740.0" class="lane-label" text-anchor="middle">ON-CHAIN / DEFI ANALYTICS ($30-1000/mes)</text>
+<rect x="40.0" y="880.0" width="1900.0" height="160.0" rx="4" class="lane-quant" stroke-width="1.5"/>
+<rect x="40.0" y="880.0" width="1900.0" height="30" rx="4" class="lane-quant" stroke-width="1.5"/>
+<text x="990.0" y="900.0" class="lane-label" text-anchor="middle">OPEN-SOURCE / SELF-HOST (free)</text>
+<path d="M 140.0,180.0 L 140.0,180.0 L 140.0,480.0 L 140.0,480.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 140.0,180.0 L 240.0,180.0 L 240.0,480.0 L 340.0,480.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 140.0,180.0 L 340.0,180.0 L 340.0,480.0 L 540.0,480.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 140.0,180.0 L 140.0,180.0 L 140.0,960.0 L 140.0,960.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 340.0,180.0 L 240.0,180.0 L 240.0,960.0 L 140.0,960.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 140.0,180.0 L 240.0,180.0 L 240.0,960.0 L 340.0,960.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 1140.0,180.0 L 740.0,180.0 L 740.0,960.0 L 340.0,960.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 140.0,180.0 L 140.0,180.0 L 140.0,640.0 L 140.0,640.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 140.0,180.0 L 540.0,180.0 L 540.0,640.0 L 940.0,640.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 370.0,330.0 L 555.0,330.0 L 555.0,640.0 L 740.0,640.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 140.0,800.0 L 440.0,800.0 L 440.0,640.0 L 740.0,640.0" class="edge-dashed" marker-end="url(#arrow-dashed)"/>
+<path d="M 140.0,180.0 L 520.0,180.0 L 520.0,1180.0 L 900.0,1180.0" class="edge-future" marker-end="url(#arrow-future)"/>
+<path d="M 940.0,960.0 L 920.0,960.0 L 920.0,1180.0 L 900.0,1180.0" class="edge-future" marker-end="url(#arrow-future)"/>
+<path d="M 140.0,640.0 L 520.0,640.0 L 520.0,1180.0 L 900.0,1180.0" class="edge-future" marker-end="url(#arrow-future)"/>
+<polygon points="140.0,140.0 220.0,180.0 140.0,220.0 60.0,180.0" class="exchange" stroke-width="2"/>
+<text x="140.0" y="170.5" class="node-label">Binance</text>
+<text x="140.0" y="183.5" class="node-label">Maior volume cripto</text>
+<text x="140.0" y="196.5" class="node-label">200+ USDT pairs</text>
+<polygon points="340.0,140.0 420.0,180.0 340.0,220.0 260.0,180.0" class="exchange" stroke-width="2"/>
+<text x="340.0" y="170.5" class="node-label">Bybit</text>
+<text x="340.0" y="183.5" class="node-label">Top 3, fees menores</text>
+<text x="340.0" y="196.5" class="node-label">Sem block BR</text>
+<polygon points="540.0,140.0 620.0,180.0 540.0,220.0 460.0,180.0" class="exchange" stroke-width="2"/>
+<text x="540.0" y="177.0" class="node-label">OKX</text>
+<text x="540.0" y="190.0" class="node-label">Top 5, spot+fut+opt</text>
+<polygon points="740.0,140.0 820.0,180.0 740.0,220.0 660.0,180.0" class="exchange" stroke-width="2"/>
+<text x="740.0" y="170.5" class="node-label">Coinbase</text>
+<text x="740.0" y="183.5" class="node-label">EUA regulada</text>
+<text x="740.0" y="196.5" class="node-label">Institucional</text>
+<polygon points="940.0,140.0 1020.0,180.0 940.0,220.0 860.0,180.0" class="exchange" stroke-width="2"/>
+<text x="940.0" y="170.5" class="node-label">dYdX</text>
+<text x="940.0" y="183.5" class="node-label">DEX perp, sem KYC</text>
+<text x="940.0" y="196.5" class="node-label">On-chain order book</text>
+<polygon points="1140.0,140.0 1220.0,180.0 1140.0,220.0 1060.0,180.0" class="exchange" stroke-width="2"/>
+<text x="1140.0" y="170.5" class="node-label">Hyperliquid</text>
+<text x="1140.0" y="183.5" class="node-label">DEX perp L1 propria</text>
+<text x="1140.0" y="196.5" class="node-label">DAO: dados L2 free</text>
+<polygon points="150.0,300.0 240.0,330.0 150.0,360.0 60.0,330.0" class="oracle" stroke-width="2"/>
+<text x="150.0" y="327.0" class="node-label">Pyth Network</text>
+<text x="150.0" y="340.0" class="node-label">Pull-based, sub-segundo</text>
+<polygon points="370.0,300.0 460.0,330.0 370.0,360.0 280.0,330.0" class="oracle" stroke-width="2"/>
+<text x="370.0" y="327.0" class="node-label">Chainlink</text>
+<text x="370.0" y="340.0" class="node-label">Push-based, mais adotado</text>
+<polygon points="590.0,300.0 680.0,330.0 590.0,360.0 500.0,330.0" class="oracle" stroke-width="2"/>
+<text x="590.0" y="320.5" class="node-label">CoinGecko</text>
+<text x="590.0" y="333.5" class="node-label">Agregador, 10k+ moedas</text>
+<text x="590.0" y="346.5" class="node-label">Free 30 req/min</text>
+<polygon points="810.0,300.0 900.0,330.0 810.0,360.0 720.0,330.0" class="oracle" stroke-width="2"/>
+<text x="810.0" y="327.0" class="node-label">CoinMarketCap</text>
+<text x="810.0" y="340.0" class="node-label">Aquirido por Binance</text>
+<polygon points="140.0,440.0 220.0,520.0 60.0,520.0" class="retail" stroke-width="2"/>
+<text x="140.0" y="470.5" class="node-label">3Commas</text>
+<text x="140.0" y="483.5" class="node-label">Grid, DCA, futures</text>
+<text x="140.0" y="496.5" class="node-label">Copy trade</text>
+<polygon points="340.0,440.0 420.0,520.0 260.0,520.0" class="retail" stroke-width="2"/>
+<text x="340.0" y="470.5" class="node-label">Cryptohopper</text>
+<text x="340.0" y="483.5" class="node-label">Auto trade, AI</text>
+<text x="340.0" y="496.5" class="node-label">Marketplace signals</text>
+<polygon points="540.0,440.0 620.0,520.0 460.0,520.0" class="retail" stroke-width="2"/>
+<text x="540.0" y="470.5" class="node-label">Pionex</text>
+<text x="540.0" y="483.5" class="node-label">Bots built-in</text>
+<text x="540.0" y="496.5" class="node-label">Free (fee no trade)</text>
+<polygon points="740.0,440.0 820.0,520.0 660.0,520.0" class="retail" stroke-width="2"/>
+<text x="740.0" y="470.5" class="node-label">Bitsgap</text>
+<text x="740.0" y="483.5" class="node-label">Grid, DCA, BTD</text>
+<text x="740.0" y="496.5" class="node-label">25+ exchanges</text>
+<polygon points="140.0,600.0 220.0,680.0 60.0,680.0" class="quant" stroke-width="2"/>
+<text x="140.0" y="630.5" class="node-label">Coinglass</text>
+<text x="140.0" y="643.5" class="node-label">Liquidations, OI, funding</text>
+<text x="140.0" y="656.5" class="node-label">Indispensavel deriv</text>
+<polygon points="340.0,600.0 420.0,680.0 260.0,680.0" class="quant" stroke-width="2"/>
+<text x="340.0" y="630.5" class="node-label">Laevitas</text>
+<text x="340.0" y="643.5" class="node-label">Options analytics</text>
+<text x="340.0" y="656.5" class="node-label">Greeks, IV surface</text>
+<polygon points="540.0,600.0 620.0,680.0 460.0,680.0" class="quant" stroke-width="2"/>
+<text x="540.0" y="630.5" class="node-label">Velo Data</text>
+<text x="540.0" y="643.5" class="node-label">L2 tick historico</text>
+<text x="540.0" y="656.5" class="node-label">Institutional</text>
+<polygon points="740.0,600.0 820.0,680.0 660.0,680.0" class="quant" stroke-width="2"/>
+<text x="740.0" y="630.5" class="node-label">Amberdata</text>
+<text x="740.0" y="643.5" class="node-label">On-chain + market</text>
+<text x="740.0" y="656.5" class="node-label">B2B</text>
+<polygon points="940.0,600.0 1020.0,680.0 860.0,680.0" class="quant" stroke-width="2"/>
+<text x="940.0" y="630.5" class="node-label">Kaiko</text>
+<text x="940.0" y="643.5" class="node-label">L2 tick, options</text>
+<text x="940.0" y="656.5" class="node-label">Institutional</text>
+<polygon points="1140.0,600.0 1220.0,680.0 1060.0,680.0" class="quant" stroke-width="2"/>
+<text x="1140.0" y="630.5" class="node-label">Skew</text>
+<text x="1140.0" y="643.5" class="node-label">Derivatives analytics</text>
+<text x="1140.0" y="656.5" class="node-label">Aquirido por Coinbase</text>
+<polygon points="140.0,760.0 220.0,840.0 60.0,840.0" class="onchain" stroke-width="2"/>
+<text x="140.0" y="790.5" class="node-label">Glassnode</text>
+<text x="140.0" y="803.5" class="node-label">NVT, MVRV, SOPR</text>
+<text x="140.0" y="816.5" class="node-label">Studio + API</text>
+<polygon points="340.0,760.0 420.0,840.0 260.0,840.0" class="onchain" stroke-width="2"/>
+<text x="340.0" y="790.5" class="node-label">Nansen</text>
+<text x="340.0" y="803.5" class="node-label">Wallet labeling</text>
+<text x="340.0" y="816.5" class="node-label">Smart Money</text>
+<polygon points="540.0,760.0 620.0,840.0 460.0,840.0" class="onchain" stroke-width="2"/>
+<text x="540.0" y="790.5" class="node-label">Arkham</text>
+<text x="540.0" y="803.5" class="node-label">Address attribution</text>
+<text x="540.0" y="816.5" class="node-label">Intel marketplace</text>
+<polygon points="750.0,760.0 840.0,840.0 660.0,840.0" class="onchain" stroke-width="2"/>
+<text x="750.0" y="790.5" class="node-label">Dune Analytics</text>
+<text x="750.0" y="803.5" class="node-label">SQL on-chain</text>
+<text x="750.0" y="816.5" class="node-label">Dashboards compartilhados</text>
+<polygon points="960.0,760.0 1040.0,840.0 880.0,840.0" class="onchain" stroke-width="2"/>
+<text x="960.0" y="790.5" class="node-label">The Graph</text>
+<text x="960.0" y="803.5" class="node-label">Subgraphs, GraphQL</text>
+<text x="960.0" y="816.5" class="node-label">Open-source</text>
+<polygon points="1160.0,760.0 1240.0,840.0 1080.0,840.0" class="onchain" stroke-width="2"/>
+<text x="1160.0" y="790.5" class="node-label">Flipside</text>
+<text x="1160.0" y="803.5" class="node-label">Curated dashboards</text>
+<text x="1160.0" y="816.5" class="node-label">Bounty program</text>
+<polygon points="140.0,920.0 220.0,1000.0 60.0,1000.0" class="quant" stroke-width="2"/>
+<text x="140.0" y="950.5" class="node-label">Freqtrade</text>
+<text x="140.0" y="963.5" class="node-label">50k+ stars, GPL</text>
+<text x="140.0" y="976.5" class="node-label">FreqAI (ML)</text>
+<polygon points="340.0,920.0 420.0,1000.0 260.0,1000.0" class="quant" stroke-width="2"/>
+<text x="340.0" y="950.5" class="node-label">Hummingbot</text>
+<text x="340.0" y="963.5" class="node-label">19k+ stars, Apache</text>
+<text x="340.0" y="976.5" class="node-label">Market making, DEX</text>
+<polygon points="540.0,920.0 620.0,1000.0 460.0,1000.0" class="quant" stroke-width="2"/>
+<text x="540.0" y="950.5" class="node-label">Jesse</text>
+<text x="540.0" y="963.5" class="node-label">MIT, UI limpa</text>
+<text x="540.0" y="976.5" class="node-label">Backtest preciso</text>
+<polygon points="740.0,920.0 820.0,1000.0 660.0,1000.0" class="quant" stroke-width="2"/>
+<text x="740.0" y="950.5" class="node-label">Nautilus Trader</text>
+<text x="740.0" y="963.5" class="node-label">Python + Rust</text>
+<text x="740.0" y="976.5" class="node-label">Institutional perf</text>
+<polygon points="940.0,920.0 1020.0,1000.0 860.0,1000.0" class="quant" stroke-width="2"/>
+<text x="940.0" y="950.5" class="node-label">VectorBT (lib)</text>
+<text x="940.0" y="963.5" class="node-label">Vetorizado Numba</text>
+<text x="940.0" y="976.5" class="node-label">20x rapido sweeps</text>
+<rect x="700.0" y="1100.0" width="400.0" height="160.0" rx="6" class="me" stroke-width="2"/>
+<text x="900.0" y="1131.5" class="node-label" font-weight="bold">crypto-correl-bot (NOS)</text>
+<text x="900.0" y="1144.5" class="node-label" font-weight="bold"></text>
+<text x="900.0" y="1157.5" class="node-label" font-weight="bold">Self-host + Microestrutura</text>
+<text x="900.0" y="1170.5" class="node-label" font-weight="bold">+ Grafos de correlacao</text>
+<text x="900.0" y="1183.5" class="node-label" font-weight="bold">+ 9 estrategias quant</text>
+<text x="900.0" y="1196.5" class="node-label" font-weight="bold"></text>
+<text x="900.0" y="1209.5" class="node-label" font-weight="bold">Lacuna rara: bot quant</text>
+<text x="900.0" y="1222.5" class="node-label" font-weight="bold">self-hosted com microestrutura</text>
+<text x="900.0" y="1235.5" class="node-label" font-weight="bold">de nivel institucional, sem custo API</text>
+<text x="1000.0" y="40.0" font-size="24" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Mercado Cripto-Trading 2026: Mapa do Ecossistema</text>
+<text x="1000.0" y="80.0" font-size="12" fill="#787B86" text-anchor="middle" font-weight="normal">Vermelho = crypto-correl-bot (nos) | Azul = exchanges | Roxo = quant | Verde-agua = on-chain | Laranja = retail</text>
+<text x="1310.0" y="1120.0" font-size="11" fill="#FFFFFF" text-anchor="start" font-weight="normal"><b>GAP DE MERCADO</b><br><br>Nenhum produto combina:<br>- Self-hosted (free)<br>- Microestrutura L2<br>- Grafos de correlacao<br>- Multi-estrategia quant<br>- Backtest walk-forward<br><br>Retail SaaS = grid/DCA<br>OSS = sem microestrutura<br>Institucional = $500+/mes</text>
+</svg>
+</body>
+</html>
