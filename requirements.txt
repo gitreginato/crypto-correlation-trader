@@ -40,5 +40,4 @@ pytest-asyncio==0.23
 # Lint (dev only)
 ruff==0.5
 mypy==1.10
-statsmodels==0.14.6
 nolds==0.6.3
