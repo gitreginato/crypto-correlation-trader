@@ -31,7 +31,7 @@ vectorbt==0.26
 # Config & utils
 pydantic==2.7
 pyyaml==6.0
-python-dotenv==1.0
+python-dotenv==1.2.2
 
 # Testing
 pytest==8.3.5
