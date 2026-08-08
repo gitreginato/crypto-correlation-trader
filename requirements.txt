@@ -16,7 +16,7 @@ scipy==1.13
 statsmodels==0.14
 scikit-learn==1.5
 hmmlearn==0.3
-ruptures==1.5
+ruptures==1.1.11
 arch==6.0
 
 # Visualization
