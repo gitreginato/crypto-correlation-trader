@@ -6,7 +6,7 @@ pyarrow==17.0
 # Exchange data
 ccxt==4.5
 python-binance==1.0.37
-aiohttp==3.9
+aiohttp==3.10.11
 websockets==12.0
 requests==2.32
 
