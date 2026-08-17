@@ -1,7 +1,7 @@
 # Core data
 pandas==2.2
 numpy==1.26.4
-pyarrow==17.0
+pyarrow==23.0.1
 
 # Exchange data
 ccxt==4.5
